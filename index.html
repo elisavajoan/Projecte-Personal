@@ -4,15 +4,197 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MI CONOCIMIENTO</title>
+  <meta name="description" content="Las horas que un diseñador dedica a dominar los programas de diseño, programa a programa.">
+
+  <!-- Tipografía: Archivo, de Google Fonts. Si no carga, se usa Helvetica. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+
   <!-- El nombre tiene que coincidir con el del archivo: style.css -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- Avisa al CSS de que hay JavaScript, para preparar las animaciones -->
+  <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 
-   <h1>Web De Dades Sobre La Inversió De Temps En El Disseny</h1>
+  <main>
 
-  <button id="boton">Ver mi pregunta</button>
-  <p id="texto" hidden>Quant de temps dediquen els dissenyadors a aprendre/dominar els programes de disseny?</p>
+    <!-- ============ PANTALLA 1 · Portada ============ -->
+    <section class="banda banda--oscura portada" id="portada">
+      <h1 data-split="chars">Web De Dades Sobre La Inversió De Temps En El Disseny</h1>
+
+      <div class="portada__pie">
+        <div class="pregunta">
+          <button id="boton" type="button" aria-expanded="false" aria-controls="texto">Ver mi pregunta</button>
+          <p id="texto" data-split="words" data-manual>Quant de temps dediquen els dissenyadors a aprendre/dominar els programes de disseny?</p>
+        </div>
+        <p class="pista">Baja para ver las horas</p>
+      </div>
+    </section>
+
+    <!-- ============ PANTALLA 2 · Lo que no se ve ============ -->
+    <section class="banda banda--clara manifiesto" id="proceso">
+      <p class="declaracion" data-split="scrub">«¿Y tú de qué vas a trabajar? Lo tuyo es fácil, ¿no? ¿No hacéis exámenes?» Siempre me preguntan lo mismo. Del diseño solo se ve el resultado: no se ven las mil pruebas ni las ideas descartadas, ni el tiempo que lleva dominar cada programa.</p>
+
+      <div class="total" data-reveal>
+        <!-- El total se calcula solo sumando las horas de los programas (pantalla 4) -->
+        <p class="total__cifra"><span data-total>6.486,48</span> <span class="total__unidad">h</span></p>
+        <p class="total__nota" data-split="words" data-nota-dias>horas en siete programas de diseño. Son 270 días seguidos, de día y de noche.</p>
+      </div>
+    </section>
+
+    <!-- ============ PANTALLA 3 · El torbellino ============ -->
+    <section class="banda banda--oscura torbellino" id="torbellino">
+      <canvas id="lienzo" aria-hidden="true"></canvas>
+      <h2 class="torbellino__titulo" data-split="words">Estas horas no se ven en el resultado final.</h2>
+      <p class="torbellino__leyenda" data-split="words">Cada cifra es un programa. Cuantas más horas, más grande y más frecuente.</p>
+    </section>
+
+    <!-- ============ PANTALLA 4 · Los datos ============ -->
+    <!--
+      Para cambiar un dato: edita data-horas (con punto decimal) y el número que se ve.
+      El torbellino, las barras y el total se actualizan solos a partir de data-horas.
+    -->
+    <section class="banda banda--clara datos" id="datos">
+      <h2 class="datos__titulo" data-split="words">Horas acumuladas en cada programa</h2>
+
+      <ul class="programas">
+
+        <li class="programa" data-nombre="Figma" data-horas="1786.61" data-reveal>
+          <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-figma">
+            <span class="programa__nombre" data-split="chars">Figma</span>
+            <span class="programa__horas"><span data-cuenta>1.786,61</span> h</span>
+            <span class="programa__sesion">Sesión media 1h 52m</span>
+            <span class="programa__icono" aria-hidden="true"></span>
+          </button>
+          <div class="programa__cuerpo" id="detalle-figma">
+            <div class="programa__interior">
+              <dl>
+                <div><dt>Patrón de sesión</dt><dd>Bloques prolongados e ininterrumpidos.</dd></div>
+                <div><dt>Picos de actividad</dt><dd>De 10:00 a 14:00 y de 16:00 a 19:30.</dd></div>
+                <div><dt>Tendencia</dt><dd>Exponencial ascendente desde 2022 (+238 % entre 2022 y 2024). Se ha convertido en la herramienta troncal de diseño y prototipado.</dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="programa__barra" aria-hidden="true"></span>
+        </li>
+
+        <li class="programa" data-nombre="Photoshop" data-horas="1415.25" data-reveal>
+          <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-photoshop">
+            <span class="programa__nombre" data-split="chars">Photoshop</span>
+            <span class="programa__horas"><span data-cuenta>1.415,25</span> h</span>
+            <span class="programa__sesion">Sesión media 1h 38m</span>
+            <span class="programa__icono" aria-hidden="true"></span>
+          </button>
+          <div class="programa__cuerpo" id="detalle-photoshop">
+            <div class="programa__interior">
+              <dl>
+                <div><dt>Patrón de sesión</dt><dd>Sesiones segmentadas con uso intensivo de GPU y RAM.</dd></div>
+                <div><dt>Tendencia</dt><dd>Pico máximo en 2022 (382,30 h) y descenso hacia un estándar estable de unas 240 h al año. Se centra casi por completo en procesado fotográfico complejo, retoque digital y mockups avanzados.</dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="programa__barra" aria-hidden="true"></span>
+        </li>
+
+        <li class="programa" data-nombre="Illustrator" data-horas="1238.80" data-reveal>
+          <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-illustrator">
+            <span class="programa__nombre" data-split="chars">Illustrator</span>
+            <span class="programa__horas"><span data-cuenta>1.238,80</span> h</span>
+            <span class="programa__sesion">Sesión media 1h 24m</span>
+            <span class="programa__icono" aria-hidden="true"></span>
+          </button>
+          <div class="programa__cuerpo" id="detalle-illustrator">
+            <div class="programa__interior">
+              <dl>
+                <div><dt>Patrón de sesión</dt><dd>Trabajo continuo en fases de branding y maquetación vectorial.</dd></div>
+                <div><dt>Tendencia</dt><dd>Reducción moderada de horas, porque el diseño de layouts e interfaces ha pasado a Figma. Mantiene la exclusividad en ilustración, iconografía de precisión e identidad corporativa.</dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="programa__barra" aria-hidden="true"></span>
+        </li>
+
+        <li class="programa" data-nombre="Premiere Pro" data-horas="867.95" data-reveal>
+          <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-premiere">
+            <span class="programa__nombre" data-split="chars">Premiere Pro</span>
+            <span class="programa__horas"><span data-cuenta>867,95</span> h</span>
+            <span class="programa__sesion">Sesión media 2h 45m</span>
+            <span class="programa__icono" aria-hidden="true"></span>
+          </button>
+          <div class="programa__cuerpo" id="detalle-premiere">
+            <div class="programa__interior">
+              <dl>
+                <div><dt>Patrón de sesión</dt><dd>Sesiones de larga duración asociadas a cortes y montaje.</dd></div>
+                <div><dt>Tendencia</dt><dd>Aumento notable a partir de 2023. Consolida una producción de vídeo regular que se estabiliza en torno a 180–210 h al año.</dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="programa__barra" aria-hidden="true"></span>
+        </li>
+
+        <li class="programa" data-nombre="After Effects" data-horas="602.80" data-reveal>
+          <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-aftereffects">
+            <span class="programa__nombre" data-split="chars">After Effects</span>
+            <span class="programa__horas"><span data-cuenta>602,80</span> h</span>
+            <span class="programa__sesion">Sesión media 2h 10m</span>
+            <span class="programa__icono" aria-hidden="true"></span>
+          </button>
+          <div class="programa__cuerpo" id="detalle-aftereffects">
+            <div class="programa__interior">
+              <dl>
+                <div><dt>Patrón de sesión</dt><dd>Ráfagas técnicas centradas en motion graphics, keyframing y renders pesados.</dd></div>
+                <div><dt>Tendencia</dt><dd>Curva de especialización progresiva: en 2024 duplicó las horas de 2022.</dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="programa__barra" aria-hidden="true"></span>
+        </li>
+
+        <li class="programa" data-nombre="InDesign" data-horas="430.29" data-reveal>
+          <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-indesign">
+            <span class="programa__nombre" data-split="chars">InDesign</span>
+            <span class="programa__horas"><span data-cuenta>430,29</span> h</span>
+            <span class="programa__sesion">Sesión media 1h 45m</span>
+            <span class="programa__icono" aria-hidden="true"></span>
+          </button>
+          <div class="programa__cuerpo" id="detalle-indesign">
+            <div class="programa__interior">
+              <dl>
+                <div><dt>Patrón de sesión</dt><dd>Bloques densos pero espaciados en el tiempo, por entregas.</dd></div>
+                <div><dt>Tendencia</dt><dd>Decreciente de forma sostenida. Su uso se limita a publicaciones editoriales, manuales de identidad en PDF corporativo y material para imprenta.</dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="programa__barra" aria-hidden="true"></span>
+        </li>
+
+        <li class="programa" data-nombre="Bridge" data-horas="144.78" data-reveal>
+          <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-bridge">
+            <span class="programa__nombre" data-split="chars">Bridge</span>
+            <span class="programa__horas"><span data-cuenta>144,78</span> h</span>
+            <span class="programa__sesion">Sesión media 11 min</span>
+            <span class="programa__icono" aria-hidden="true"></span>
+          </button>
+          <div class="programa__cuerpo" id="detalle-bridge">
+            <div class="programa__interior">
+              <dl>
+                <div><dt>Patrón de sesión</dt><dd>Micro-sesiones utilitarias de ingesta, cribado y metadatos.</dd></div>
+                <div><dt>Frecuencia media</dt><dd>De 3 a 5 ejecuciones al día durante los días de rodaje y edición.</dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="programa__barra" aria-hidden="true"></span>
+        </li>
+
+      </ul>
+
+      <p class="cierre" data-split="words">El resultado se ve en un segundo. Llegar a él lleva miles de horas.</p>
+    </section>
+
+  </main>
 
   <!-- El JavaScript va al final, cuando la página ya está cargada -->
   <script src="script.js"></script>

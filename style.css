@@ -1,25 +1,486 @@
+/* =========================================================
+   MI CONOCIMIENTO · style.css
+   Negro y blanco. Cuatro pantallas que se alternan:
+   portada (negro) · proceso (blanco) · torbellino (negro) · datos (blanco)
+   ========================================================= */
+
+:root {
+  --negro: #000;
+  --blanco: #fff;
+  --gris-sobre-negro: #9a9a9a;
+  --gris-sobre-blanco: #666;
+
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-in-out: cubic-bezier(.77, 0, .18, 1);
+
+  --margen: clamp(1.25rem, 4vw, 4rem);
+  --fuente: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-snap-type: y proximity;   /* cada scroll tiende a parar en una pantalla */
+  -webkit-text-size-adjust: 100%;
+  background: var(--negro);
+}
+
 body {
-  font-family: sans-serif;
-  margin: 40px;
-  background-color: blue;
+  margin: 0;
+  font-family: var(--fuente);
+  font-weight: 400;
+  font-stretch: 100%;
+  line-height: 1.4;
+  color: var(--blanco);
+  background: var(--negro);
+  -webkit-font-smoothing: antialiased;
 }
 
-h1 {
-  color: #fcfcfc;
-  font-family: Helvetica, sans-serif;
-  letter-spacing: -3px;
-  Font-size: 10vw;
-  line-height: 80%;
+:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
+::selection { background: var(--blanco); color: var(--negro); }
+.banda--clara::selection,
+.banda--clara ::selection { background: var(--negro); color: var(--blanco); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-button {
-  top: 40%;
-  width: 20vw;
-  height: 10vh;
-  font-size: 1.5em;
+/* ---------- Bandas (cada pantalla) ---------- */
+
+.banda {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--margen);
+  scroll-snap-align: start;
+  overflow: clip;
+}
+
+.banda--oscura {
+  background: var(--negro);
+  color: var(--blanco);
+  --gris: var(--gris-sobre-negro);
+  --linea: rgba(255, 255, 255, .22);
+}
+
+.banda--clara {
+  background: var(--blanco);
+  color: var(--negro);
+  --gris: var(--gris-sobre-blanco);
+  --linea: rgba(0, 0, 0, .22);
+}
+
+/* =========================================================
+   ANIMACIÓN DE TEXTO
+   El JavaScript parte cada texto en palabras o letras.
+   Cada trozo vive dentro de una "máscara" (.pal) y sube desde abajo.
+   ========================================================= */
+
+/* Mientras el JS prepara el texto, se oculta para que no parpadee.
+   Si el JS fallara, a los 3 s se muestra igualmente. */
+.js [data-split]:not(.dividido) {
+  visibility: hidden;
+  animation: mostrar 0s 3s forwards;
+}
+@keyframes mostrar { to { visibility: visible; } }
+
+.pal {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-block: .18em;
+  margin-block: -.18em;
+}
+
+.let,
+.pal__i {
+  display: inline-block;
+  transform: translateY(135%);
+  transition: transform 1s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 24ms);
+  will-change: transform;
+}
+
+.in .let,
+.in .pal__i,
+.let.in,
+.pal__i.in { transform: none; }
+
+.in[data-split] .pal__i,
+.in[data-split] .let { transform: none; }
+
+/* Párrafo que se ilumina palabra a palabra con el scroll */
+.luz {
+  opacity: .14;
+  transition: opacity .4s ease;
+}
+.luz.on { opacity: 1; }
+
+/* =========================================================
+   PANTALLA 1 · Portada
+   ========================================================= */
+
+.portada {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3rem;
+}
+
+.portada h1 {
+  margin: 0;
+  font-size: clamp(3.2rem, min(12vw, 16vh), 14rem);   /* se ajusta también al alto para que quepa el botón */
+  font-weight: 800;
+  font-stretch: 62%;
+  line-height: .82;
+  letter-spacing: -.015em;
+}
+
+.portada__pie {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.pregunta {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 36rem;
+}
+
+#boton {
+  appearance: none;
+  width: max(12rem, 20vw);
+  height: clamp(3.5rem, 10vh, 5.5rem);
+  padding: 0 1.5rem;
+  font: inherit;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--negro);
+  background: var(--blanco);
+  border: 1px solid var(--blanco);
+  border-radius: 2px;
   cursor: pointer;
-  background-color: #fcfcfc;
-  color:blue;
-  border:none;
-  border-radius: 2%;
+  transition: background-color .3s ease, color .3s ease;
+}
+#boton:hover { background: var(--negro); color: var(--blanco); }
+
+#texto {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.pista {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin: 0;
+  font-size: .95rem;
+  color: var(--gris);
+}
+.pista::before {
+  content: "";
+  width: 3rem;
+  height: 1px;
+  background: currentColor;
+}
+
+/* =========================================================
+   PANTALLA 2 · Lo que no se ve
+   ========================================================= */
+
+.manifiesto {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4rem;
+}
+
+.declaracion {
+  margin: 0;
+  max-width: 24em;
+  font-size: clamp(1.9rem, 4.4vw, 4.6rem);
+  font-weight: 600;
+  font-stretch: 80%;
+  line-height: 1.06;
+  letter-spacing: -.015em;
+}
+
+.total { display: grid; gap: 2rem; }
+
+.total__cifra {
+  margin: 0;
+  font-size: clamp(4.5rem, 17vw, 19rem);
+  font-weight: 800;
+  font-stretch: 62%;
+  line-height: .82;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.total__unidad { font-size: .38em; letter-spacing: 0; }
+
+.total__nota {
+  margin: 0;
+  max-width: 32rem;
+  font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+}
+
+/* =========================================================
+   PANTALLA 3 · El torbellino
+   ========================================================= */
+
+.torbellino { padding: 0; }
+
+.torbellino canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.torbellino__titulo,
+.torbellino__leyenda {
+  position: absolute;
+  left: var(--margen);
+  margin: 0;
+  z-index: 1;
+}
+
+.torbellino__titulo {
+  top: var(--margen);
+  max-width: 7em;
+  font-size: clamp(2.2rem, 5.6vw, 6rem);
+  font-weight: 800;
+  font-stretch: 62%;
+  line-height: .9;
+  letter-spacing: -.01em;
+}
+
+.torbellino__leyenda {
+  bottom: var(--margen);
+  max-width: 22rem;
+  color: var(--gris);
+  font-size: 1rem;
+}
+
+/* =========================================================
+   PANTALLA 4 · Los datos
+   ========================================================= */
+
+.datos {
+  display: flex;
+  flex-direction: column;
+}
+
+.datos__titulo {
+  margin: 0 0 clamp(2rem, 6vw, 5rem);
+  max-width: 12em;
+  font-size: clamp(2rem, 5vw, 5rem);
+  font-weight: 800;
+  font-stretch: 62%;
+  line-height: .9;
+  letter-spacing: -.01em;
+}
+
+.programas {
+  list-style: none;
+  margin: 0 calc(var(--margen) * -1);     /* las líneas llegan hasta los bordes */
+  padding: 0;
+  border-top: 1px solid var(--linea);
+}
+
+.programa {
+  position: relative;
+  border-bottom: 1px solid var(--linea);
+  transition: background-color .3s ease, color .3s ease;
+}
+
+@media (hover: hover) {
+  .programa:hover {
+    background: var(--negro);
+    color: var(--blanco);
+    --gris: var(--gris-sobre-negro);
+    --linea: rgba(255, 255, 255, .22);
+  }
+}
+
+.programa__cabecera {
+  appearance: none;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 1.75rem;
+  grid-template-areas: "nombre horas sesion icono";
+  align-items: center;
+  column-gap: clamp(1rem, 3vw, 3rem);
+  padding: clamp(.9rem, 2vh, 1.6rem) var(--margen);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.programa__nombre {
+  grid-area: nombre;
+  font-size: clamp(2.2rem, 5.6vw, 5.5rem);
+  font-weight: 800;
+  font-stretch: 62%;
+  line-height: .9;
+  letter-spacing: -.01em;
+}
+
+.programa__horas {
+  grid-area: horas;
+  font-size: clamp(1.4rem, 3.2vw, 3.2rem);
+  font-weight: 600;
+  font-stretch: 75%;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 9em;          /* columnas de la misma anchura en todas las filas */
+  text-align: right;
+}
+
+.programa__sesion {
+  grid-area: sesion;
+  min-width: 11rem;
+  color: var(--gris);
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.programa__icono {
+  grid-area: icono;
+  position: relative;
+  width: 1.25rem;
+  height: 1.25rem;
+  justify-self: end;
+}
+.programa__icono::before,
+.programa__icono::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: currentColor;
+  transition: transform .45s var(--ease-in-out);
+}
+.programa__icono::after { transform: rotate(90deg); }
+.programa.abierto .programa__icono::after { transform: rotate(0deg); }
+
+/* Detalle desplegable (se anima la altura con grid) */
+.js .programa__cuerpo {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows .55s var(--ease-in-out), visibility 0s .55s;
+}
+.js .programa.abierto .programa__cuerpo {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.programa__interior {
+  min-height: 0;
+  overflow: hidden;
+  padding-inline: var(--margen);
+}
+
+.programa__interior dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1.5rem 3rem;
+  max-width: 64rem;
+  margin: 0;
+  padding: .5rem 0 2.25rem;
+}
+.programa__interior dt {
+  margin-bottom: .35rem;
+  font-size: .95rem;
+  color: var(--gris);
+}
+.programa__interior dd {
+  margin: 0;
+  max-width: 44ch;
+  font-size: clamp(1rem, 1.25vw, 1.2rem);
+  line-height: 1.45;
+}
+
+/* Barra: su largo es la parte de horas respecto al programa con más horas */
+.programa__barra {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 3px;
+  width: calc(var(--parte, 0) * 100%);
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.4s var(--ease-out) .25s;
+}
+.programa.in .programa__barra { transform: scaleX(1); }
+
+.cierre {
+  margin: clamp(3rem, 8vw, 7rem) 0 0;
+  max-width: 20em;
+  font-size: clamp(1.6rem, 3.6vw, 3.4rem);
+  font-weight: 700;
+  font-stretch: 75%;
+  line-height: 1.05;
+  letter-spacing: -.01em;
+}
+
+/* =========================================================
+   MÓVIL
+   ========================================================= */
+
+@media (max-width: 720px) {
+  .portada__pie { flex-direction: column; align-items: flex-start; }
+  #boton { width: 100%; }
+
+  .programa__cabecera {
+    grid-template-columns: auto 1fr 1.75rem;
+    grid-template-areas:
+      "nombre nombre icono"
+      "horas  sesion sesion";
+    row-gap: .6rem;
+  }
+  .programa__horas { min-width: 0; text-align: left; }
+  .programa__sesion { min-width: 0; justify-self: start; }
+
+  .torbellino__titulo { max-width: 7em; }
+}
+
+/* =========================================================
+   SI LA PERSONA PREFIERE MENOS MOVIMIENTO
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-snap-type: none; }
+
+  .let, .pal__i { transform: none; transition: none; }
+  .luz { opacity: 1; transition: none; }
+
+  .programa__cuerpo,
+  .programa__icono::before,
+  .programa__icono::after { transition: none; }
+  .programa__barra { transform: scaleX(1); transition: none; }
+
+  /* La pregunta se muestra con un fundido en vez de subir */
+  #texto { opacity: 0; transition: opacity .2s ease; }
+  #texto.in { opacity: 1; }
 }
