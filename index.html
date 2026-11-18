@@ -3,13 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MI CONOCIMIENTO</title>
+  <title>Les Hores En El Disseny</title>
   <meta name="description" content="Las horas que un diseñador dedica a dominar los programas de diseño, programa a programa.">
-
-  <!-- Tipografía: Archivo, de Google Fonts. Si no carga, se usa Helvetica. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 
   <!-- El nombre tiene que coincidir con el del archivo: style.css -->
   <link rel="stylesheet" href="style.css">
@@ -19,18 +14,28 @@
 </head>
 <body>
 
+  <!-- ============ Cabecera · logo centrado ============
+       Logo en blanco con fondo transparente. Se ve blanco sobre las pantallas negras y
+       se invierte solo a negro sobre las blancas. Hay tres tamaños (1x, 2x, 3x) para que
+       salga nítido en cualquier pantalla; logo.png es el original en grande. -->
+  <header class="cabecera">
+    <a class="logo" href="#portada" aria-label="gràcies · ir al inicio">
+      <img src="logo-2x.png" srcset="logo-1x.png 1x, logo-2x.png 2x, logo-3x.png 3x" alt="gràcies" width="144" height="56">
+    </a>
+  </header>
+
   <main>
 
     <!-- ============ PANTALLA 1 · Portada ============ -->
     <section class="banda banda--oscura portada" id="portada">
-      <h1 data-decode data-velocidad="4" data-duracion="800">Web De Dades Sobre La Inversió De Temps En El Disseny</h1>
+      <h1 data-decode data-velocidad="8" data-duracion="900">Les Hores En El Disseny</h1>
 
       <div class="portada__pie">
         <div class="pregunta">
-          <button id="boton" type="button" aria-expanded="false" aria-controls="texto" data-decode data-hover>Ver mi pregunta</button>
+          <button id="boton" type="button" aria-expanded="false" aria-controls="texto" data-decode>Ver mi pregunta</button>
           <p id="texto" data-decode data-manual data-velocidad="2" data-duracion="500">Quant de temps dediquen els dissenyadors a aprendre/dominar els programes de disseny?</p>
         </div>
-        <p class="pista">Baja para ver las horas</p>
+        <p class="pista" data-decode>Baja para ver las horas</p>
       </div>
     </section>
 
@@ -66,7 +71,7 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-figma">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Figma</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.786,61 h</span>
-            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 52m</span>
+            <span class="programa__sesion" data-decode>Sesión media 1h 52m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-figma">
@@ -85,7 +90,7 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-photoshop">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Photoshop</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.415,25 h</span>
-            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 38m</span>
+            <span class="programa__sesion" data-decode>Sesión media 1h 38m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-photoshop">
@@ -103,7 +108,7 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-illustrator">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Illustrator</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.238,80 h</span>
-            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 24m</span>
+            <span class="programa__sesion" data-decode>Sesión media 1h 24m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-illustrator">
@@ -121,7 +126,7 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-premiere">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Premiere Pro</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">867,95 h</span>
-            <span class="programa__sesion" data-decode data-hover>Sesión media 2h 45m</span>
+            <span class="programa__sesion" data-decode>Sesión media 2h 45m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-premiere">
@@ -139,7 +144,7 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-aftereffects">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">After Effects</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">602,80 h</span>
-            <span class="programa__sesion" data-decode data-hover>Sesión media 2h 10m</span>
+            <span class="programa__sesion" data-decode>Sesión media 2h 10m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-aftereffects">
@@ -157,7 +162,7 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-indesign">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">InDesign</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">430,29 h</span>
-            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 45m</span>
+            <span class="programa__sesion" data-decode>Sesión media 1h 45m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-indesign">
@@ -175,7 +180,7 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-bridge">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Bridge</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">144,78 h</span>
-            <span class="programa__sesion" data-decode data-hover>Sesión media 11 min</span>
+            <span class="programa__sesion" data-decode>Sesión media 11 min</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-bridge">

@@ -1,5 +1,5 @@
 /* =========================================================
-   MI CONOCIMIENTO · script.js
+   LES HORES EN EL DISSENY · script.js
 
    1. Utilidades y datos (se leen del HTML)
    2. Texto "decodificado": cada letra pasa por una escala de símbolos
@@ -239,7 +239,7 @@
     const banda = lienzo.parentElement;
     const ctx = lienzo.getContext('2d');
     const fuente = getComputedStyle(document.body).fontFamily;
-    const admiteAncho = 'fontStretch' in ctx;
+    const admiteTracking = 'letterSpacing' in ctx;   // tracking apretado también en el canvas
     // Cada programa aparece tantas veces como le corresponde por sus horas.
     // En pantallas pequeñas hay menos cifras para que no se amontonen.
     function crearParticulas(total) {
@@ -272,7 +272,7 @@
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = banda.clientWidth;
       H = banda.clientHeight;
-      const total = W > 900 ? 30 : 18;
+      const total = W > 900 ? 24 : 15;
       if (total !== totalActual) {
         totalActual = total;
         particulas = crearParticulas(total);
@@ -326,15 +326,16 @@
         const alfa = suave(0, 0.3, u) * (1 - suave(0.78, 1, u)) * (0.25 + 0.75 * delante);
         if (alfa < 0.01) continue;
 
-        const tam = lerp(16, 70, p.peso) * escala * (0.4 + 0.6 * (r / rMax)) * (0.85 + 0.15 * delante);
+        const tam = lerp(14, 58, p.peso) * escala * (0.4 + 0.6 * (r / rMax)) * (0.85 + 0.15 * delante);
         ctx.fillStyle = `rgba(255,255,255,${alfa.toFixed(3)})`;
 
-        ctx.font = `800 ${tam.toFixed(1)}px ${fuente}`;
-        if (admiteAncho) ctx.fontStretch = 'extra-condensed';
+        ctx.font = `700 ${tam.toFixed(1)}px ${fuente}`;
+        if (admiteTracking) ctx.letterSpacing = `${(-tam * 0.03).toFixed(2)}px`;
         ctx.fillText(p.texto, x, y);
 
-        ctx.font = `500 ${Math.max(10, tam * 0.26).toFixed(1)}px ${fuente}`;
-        if (admiteAncho) ctx.fontStretch = 'normal';
+        const tamNombre = Math.max(10, tam * 0.26);
+        ctx.font = `700 ${tamNombre.toFixed(1)}px ${fuente}`;
+        if (admiteTracking) ctx.letterSpacing = `${(-tamNombre * 0.015).toFixed(2)}px`;
         ctx.fillText(p.nombre, x, y + tam * 0.62);
       }
     }
@@ -402,7 +403,8 @@
     } else {
       textos.forEach(preparar);
       detalles.forEach(preparar);
-      $$('[data-hover]').forEach(activarGlitch);
+      // El efecto al pasar el ratón vale para cualquier texto de la página
+      [...textos, ...detalles].forEach(activarGlitch);
       if (document.fonts && document.fonts.addEventListener) {
         document.fonts.addEventListener('loadingdone', remedirTodo);
       }
@@ -442,6 +444,19 @@
       escribir(boton, mostrar ? 'Ocultar mi pregunta' : 'Ver mi pregunta');
       if (mostrar && !sinMovimiento) decodificar(texto);
     });
+
+    /* Cabecera: se esconde al bajar y reaparece al subir */
+    const cabecera = $('.cabecera');
+    if (cabecera) {
+      let previo = window.scrollY;
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        const cambio = y - previo;
+        if (Math.abs(cambio) < 6) return;        // ignora los temblores pequeños
+        cabecera.classList.toggle('oculta', cambio > 0 && y > 120);
+        previo = y;
+      }, { passive: true });
+    }
 
     iniciarTorbellino();
   }

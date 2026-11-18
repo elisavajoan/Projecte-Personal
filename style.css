@@ -1,5 +1,5 @@
 /* =========================================================
-   MI CONOCIMIENTO · style.css
+   LES HORES EN EL DISSENY · style.css
    Negro y blanco. Cuatro pantallas que se alternan:
    portada (negro) · proceso (blanco) · torbellino (negro) · datos (blanco)
    ========================================================= */
@@ -14,7 +14,17 @@
   --ease-in-out: cubic-bezier(.77, 0, .18, 1);
 
   --margen: clamp(1.25rem, 4vw, 4rem);
-  --fuente: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --cabecera: 5rem;                  /* alto de la cabecera con el logo */
+  --radio-boton: 1.5rem;              /* cantos redondeados del botón */
+
+  /* Helvetica Bold en toda la web. El efecto condensado sale del tracking
+     negativo: cuanto más grande el texto, más apretado. */
+  --fuente: Helvetica, "Helvetica Neue", Arial, sans-serif;
+  --peso: 700;
+  --t-xl: -0.05em;                    /* titulares */
+  --t-l: -0.03em;                     /* textos grandes y cifras */
+  --t-m: -0.025em;                    /* texto normal */
+  --t-s: -0.015em;                    /* texto pequeño */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -28,9 +38,9 @@ html {
 body {
   margin: 0;
   font-family: var(--fuente);
-  font-weight: 400;
-  font-stretch: 100%;
-  line-height: 1.4;
+  font-weight: var(--peso);
+  line-height: 1.3;
+  letter-spacing: var(--t-m);
   color: var(--blanco);
   background: var(--negro);
   -webkit-font-smoothing: antialiased;
@@ -52,13 +62,42 @@ body {
   border: 0;
 }
 
+/* ---------- Cabecera: logo centrado, fija ---------- */
+
+.cabecera {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  height: var(--cabecera);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blanco);
+  mix-blend-mode: difference;         /* blanco sobre negro, negro sobre blanco */
+  pointer-events: none;
+  transition: transform .45s var(--ease-in-out);
+}
+/* Se esconde al bajar para no tapar los textos, y vuelve al subir */
+.cabecera.oculta { transform: translateY(-100%); }
+.logo {
+  display: block;
+  line-height: 0;
+  pointer-events: auto;
+}
+.logo img {
+  display: block;
+  height: 3.5rem;
+  width: auto;
+  filter: brightness(0) invert(1);    /* cualquier logo se ve en blanco */
+}
+
 /* ---------- Bandas (cada pantalla) ---------- */
 
 .banda {
   position: relative;
   min-height: 100vh;
   min-height: 100svh;
-  padding: var(--margen);
+  padding: calc(var(--margen) + var(--cabecera)) var(--margen) var(--margen);
   scroll-snap-align: start;
   overflow: clip;
 }
@@ -122,11 +161,9 @@ body {
 
 .portada h1 {
   margin: 0;
-  font-size: clamp(3.2rem, min(12vw, 16vh), 14rem);   /* se ajusta también al alto para que quepa el botón */
-  font-weight: 800;
-  font-stretch: 62%;
-  line-height: .82;
-  letter-spacing: -.015em;
+  font-size: clamp(3.4rem, min(15vw, 19vh), 16rem);   /* se ajusta también al alto para que quepa el botón */
+  line-height: .9;
+  letter-spacing: var(--t-xl);
 }
 
 .portada__pie {
@@ -150,11 +187,11 @@ body {
   padding: 0 1.5rem;
   font: inherit;
   font-size: 1.35rem;
-  font-weight: 500;
+  letter-spacing: var(--t-m);
   color: var(--negro);
   background: var(--blanco);
   border: 1px solid var(--blanco);
-  border-radius: 2px;
+  border-radius: var(--radio-boton);
   cursor: pointer;
   transition: background-color .3s ease, color .3s ease;
 }
@@ -163,8 +200,8 @@ body {
 #texto {
   margin: 0;
   font-size: clamp(1.25rem, 2.2vw, 2rem);
-  font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: var(--t-l);
 }
 
 .pista {
@@ -173,6 +210,7 @@ body {
   gap: .75rem;
   margin: 0;
   font-size: .95rem;
+  letter-spacing: var(--t-s);
   color: var(--gris);
 }
 .pista::before {
@@ -197,10 +235,8 @@ body {
   margin: 0;
   max-width: 24em;
   font-size: clamp(1.9rem, 4.4vw, 4.6rem);
-  font-weight: 600;
-  font-stretch: 80%;
-  line-height: 1.06;
-  letter-spacing: -.015em;
+  line-height: 1.02;
+  letter-spacing: var(--t-l);
 }
 
 .total { display: grid; gap: 2rem; }
@@ -208,10 +244,8 @@ body {
 .total__cifra {
   margin: 0;
   font-size: clamp(4.5rem, 17vw, 19rem);
-  font-weight: 800;
-  font-stretch: 62%;
-  line-height: .82;
-  letter-spacing: -.02em;
+  line-height: .85;
+  letter-spacing: var(--t-l);         /* un poco más abierto: los dígitos grandes se pisan */
   font-variant-numeric: tabular-nums;
 }
 .total__unidad { font-size: .38em; letter-spacing: 0; }
@@ -220,6 +254,7 @@ body {
   margin: 0;
   max-width: 32rem;
   font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  letter-spacing: var(--t-m);
 }
 
 /* =========================================================
@@ -245,13 +280,11 @@ body {
 }
 
 .torbellino__titulo {
-  top: var(--margen);
+  top: calc(var(--margen) + var(--cabecera));
   max-width: 7em;
   font-size: clamp(2.2rem, 5.6vw, 6rem);
-  font-weight: 800;
-  font-stretch: 62%;
-  line-height: .9;
-  letter-spacing: -.01em;
+  line-height: .92;
+  letter-spacing: var(--t-xl);
 }
 
 .torbellino__leyenda {
@@ -259,6 +292,7 @@ body {
   max-width: 22rem;
   color: var(--gris);
   font-size: 1rem;
+  letter-spacing: var(--t-s);
 }
 
 /* =========================================================
@@ -274,10 +308,8 @@ body {
   margin: 0 0 clamp(2rem, 6vw, 5rem);
   max-width: 12em;
   font-size: clamp(2rem, 5vw, 5rem);
-  font-weight: 800;
-  font-stretch: 62%;
-  line-height: .9;
-  letter-spacing: -.01em;
+  line-height: .92;
+  letter-spacing: var(--t-xl);
 }
 
 .programas {
@@ -312,6 +344,7 @@ body {
   column-gap: clamp(1rem, 3vw, 3rem);
   padding: clamp(.9rem, 2vh, 1.6rem) var(--margen);
   font: inherit;
+  letter-spacing: inherit;
   color: inherit;
   text-align: left;
   background: none;
@@ -322,17 +355,14 @@ body {
 .programa__nombre {
   grid-area: nombre;
   font-size: clamp(2.2rem, 5.6vw, 5.5rem);
-  font-weight: 800;
-  font-stretch: 62%;
-  line-height: .9;
-  letter-spacing: -.01em;
+  line-height: .92;
+  letter-spacing: var(--t-xl);
 }
 
 .programa__horas {
   grid-area: horas;
   font-size: clamp(1.4rem, 3.2vw, 3.2rem);
-  font-weight: 600;
-  font-stretch: 75%;
+  letter-spacing: var(--t-l);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   min-width: 9em;          /* columnas de la misma anchura en todas las filas */
@@ -344,6 +374,7 @@ body {
   min-width: 11rem;
   color: var(--gris);
   font-size: 1rem;
+  letter-spacing: var(--t-s);
   white-space: nowrap;
 }
 
@@ -397,13 +428,15 @@ body {
 .programa__interior dt {
   margin-bottom: .35rem;
   font-size: .95rem;
+  letter-spacing: var(--t-s);
   color: var(--gris);
 }
 .programa__interior dd {
   margin: 0;
   max-width: 44ch;
   font-size: clamp(1rem, 1.25vw, 1.2rem);
-  line-height: 1.45;
+  line-height: 1.4;
+  letter-spacing: var(--t-m);
 }
 
 /* Barra: su largo es la parte de horas respecto al programa con más horas */
@@ -424,10 +457,8 @@ body {
   margin: clamp(3rem, 8vw, 7rem) 0 0;
   max-width: 20em;
   font-size: clamp(1.6rem, 3.6vw, 3.4rem);
-  font-weight: 700;
-  font-stretch: 75%;
-  line-height: 1.05;
-  letter-spacing: -.01em;
+  line-height: 1.02;
+  letter-spacing: var(--t-l);
 }
 
 /* =========================================================
@@ -435,6 +466,9 @@ body {
    ========================================================= */
 
 @media (max-width: 720px) {
+  :root { --cabecera: 4.25rem; }
+  .logo img { height: 2.75rem; }
+
   .portada__pie { flex-direction: column; align-items: flex-start; }
   #boton { width: 100%; }
 
@@ -458,6 +492,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-snap-type: none; }
 
+  .cabecera,
   .programa__cuerpo,
   .programa__icono::before,
   .programa__icono::after { transition: none; }
