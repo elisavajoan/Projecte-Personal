@@ -182,7 +182,8 @@ body {
 
 #boton {
   appearance: none;
-  width: max(12rem, 20vw);
+  width: max(15.5rem, 20vw);          /* cabe también «Ocultar mi pregunta» */
+  white-space: nowrap;
   height: clamp(3.5rem, 10vh, 5.5rem);
   padding: 0 1.5rem;
   font: inherit;
