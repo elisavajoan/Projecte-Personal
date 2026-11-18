@@ -2,11 +2,11 @@
    MI CONOCIMIENTO · script.js
 
    1. Utilidades y datos (se leen del HTML)
-   2. Texto animado: letras, palabras y párrafo que se ilumina con el scroll
-   3. Contadores de horas y barras
-   4. Filas desplegables
-   5. Botón de la pregunta
-   6. Torbellino de horas (canvas)
+   2. Texto "decodificado": cada letra pasa por una escala de símbolos
+      hasta convertirse en la letra real (la técnica de aino.agency)
+   3. Torbellino de horas (canvas)
+   4. Arranque: totales, aparición al entrar en pantalla,
+      filas desplegables y botón de la pregunta
    ========================================================= */
 
 (() => {
@@ -43,113 +43,194 @@
 
   const NUMEROS = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
 
-  /* ---------- 2. Texto animado ---------- */
+  /* ---------- 2. Texto decodificado ---------- */
 
-  // Parte el texto de un elemento según data-split: "chars", "words" o "scrub"
-  function dividir(el) {
-    const modo = el.dataset.split;
-    const texto = el.textContent.trim().replace(/\s+/g, ' ');
-    el.textContent = '';
+  // Escala de símbolos, de más densos a más claros (es la escala de aino.agency).
+  // Cada letra recorre esta escala desde el final (blanco) hasta su propio sitio.
+  const RAMPA = '$MBNQØW@&R8GD6S9ÖOH#ÉE5UK0ÄÅA2XP34ZC%VIF17YTJL[]?}{()<>|=+\\/^!";*_:~,\'-.·` ';
+  // Las minúsculas usan la misma escala sin números ni símbolos raros
+  const RAMPA_MIN = RAMPA.toLowerCase().replace(/[0-9@&#$%()[\]{}|\\/?!;*^]/g, '');
+
+  const VACIO = '​';   // espacio de ancho cero: mantiene la altura de la línea
+  const suavizar = e => (e < 0.5 ? 2 * e * e : (4 - 2 * e) * e - 1);   // easeInOutQuad
+
+  function rampaDe(letra) {
+    const esMinuscula = letra === letra.toLowerCase() && letra !== letra.toUpperCase();
+    const rampa = esMinuscula ? RAMPA_MIN : RAMPA;
+    return { rampa, indice: rampa.indexOf(esMinuscula ? letra : letra.toUpperCase()) };
+  }
+
+  // Símbolo que se ve durante la aparición (h va de 0 a 1)
+  function glifoAparicion(letra, h) {
+    const { rampa, indice } = rampaDe(letra);
+    if (indice === -1) return letra;                       // acentos y signos fuera de la escala: aparecen directos
+    return rampa[Math.floor(lerp(rampa.length, indice, h))] ?? VACIO;
+  }
+
+  // Símbolo que se ve durante el glitch al pasar el ratón: va hasta el otro
+  // extremo de la escala y vuelve a la letra
+  function glifoGlitch(letra, h) {
+    const { rampa, indice } = rampaDe(letra);
+    if (indice === -1) return letra;
+    const u = 1 - 2 * Math.abs(h - 0.5);
+    const lejos = indice < rampa.length / 2 ? rampa.length - 1 : 0;
+    return rampa[Math.floor(lerp(indice, lejos, u))] ?? letra;
+  }
+
+  // Un único bucle de animación para todas las letras
+  const activas = new Map();   // letra (span) -> { tipo, inicio, dur, c }
+  let bucleActivo = false;
+
+  function paso() {
+    const ahora = performance.now();
+    for (const [span, a] of activas) {
+      if (ahora < a.inicio) continue;                      // todavía no le toca
+      const t = Math.min(1, (ahora - a.inicio) / a.dur);
+      if (t >= (a.tipo === 'glitch' ? 0.99 : 1)) {
+        span.textContent = a.c;
+        span._listo = true;
+        span._glitch = false;
+        activas.delete(span);
+        continue;
+      }
+      const h = suavizar(t);
+      span.textContent = a.tipo === 'glitch' ? glifoGlitch(a.c, h) : glifoAparicion(a.c, h);
+    }
+    if (activas.size) requestAnimationFrame(paso);
+    else bucleActivo = false;
+  }
+
+  function arrancar() {
+    if (bucleActivo) return;
+    bucleActivo = true;
+    requestAnimationFrame(paso);
+  }
+
+  // Convierte el texto de un elemento en letras sueltas (.let) con ancho fijo
+  function preparar(el) {
+    const completo = el.textContent.replace(/\s+/g, ' ').trim();
+
+    const nodos = [];
+    const recorrido = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = recorrido.nextNode(); n; n = recorrido.nextNode()) nodos.push(n);
 
     // Copia para lectores de pantalla (lo visual va con aria-hidden)
     const lector = document.createElement('span');
     lector.className = 'sr-only';
-    lector.textContent = texto;
+    lector.textContent = completo;
 
-    const visual = document.createElement('span');
-    visual.setAttribute('aria-hidden', 'true');
-
-    let i = 0;
-    const palabras = texto.split(' ');
-    palabras.forEach((palabra, n) => {
-      if (modo === 'scrub') {
-        const s = document.createElement('span');
-        s.className = 'luz';
-        s.textContent = palabra;
-        visual.append(s);
-      } else {
-        const mascara = document.createElement('span');
-        mascara.className = 'pal';
-        if (modo === 'chars') {
-          for (const letra of palabra) {
-            const c = document.createElement('span');
-            c.className = 'let';
-            c.style.setProperty('--i', i++);
-            c.textContent = letra;
-            mascara.append(c);
-          }
-        } else {
-          const interior = document.createElement('span');
-          interior.className = 'pal__i';
-          interior.style.setProperty('--i', i++);
-          interior.textContent = palabra;
-          mascara.append(interior);
+    const letras = [];
+    for (const nodo of nodos) {
+      if (!nodo.textContent.trim()) continue;
+      const envoltorio = document.createElement('span');
+      envoltorio.setAttribute('aria-hidden', 'true');
+      nodo.textContent.replace(/\s+/g, ' ').split(' ').forEach((trozo, i) => {
+        if (i > 0) envoltorio.append(' ');
+        if (!trozo) return;
+        const pal = document.createElement('span');
+        pal.className = 'pal';
+        for (const c of trozo) {
+          const s = document.createElement('span');
+          s.className = 'let';
+          s.dataset.c = c;
+          s.textContent = c;
+          pal.append(s);
+          letras.push(s);
         }
-        visual.append(mascara);
-      }
-      if (n < palabras.length - 1) visual.append(' ');
-    });
+        envoltorio.append(pal);
+      });
+      nodo.replaceWith(envoltorio);
+    }
+    el.prepend(lector);
 
-    el.append(lector, visual);
+    fijarAnchos(letras);
+    for (const s of letras) {
+      s.textContent = VACIO;
+      s._listo = false;
+    }
     el.classList.add('dividido');
   }
 
-  // Cuando un elemento entra en pantalla recibe la clase "in" y el texto sube.
-  // Al salir se la quitamos, así la animación se repite al volver.
+  // Mide cada letra y fija su ancho (en em, para que siga siendo fluido).
+  // Así la línea no se mueve cuando la letra pasa por símbolos más anchos o más estrechos.
+  function fijarAnchos(letras) {
+    const previos = letras.map(s => s.textContent);
+    letras.forEach(s => { s.style.width = ''; s.textContent = s.dataset.c; });
+    const anchos = letras.map(s => s.getBoundingClientRect().width);
+    const tamanos = letras.map(s => parseFloat(getComputedStyle(s.parentNode.parentNode).fontSize));
+    letras.forEach((s, i) => {
+      s.style.width = (anchos[i] / tamanos[i]) + 'em';
+      s.textContent = previos[i];
+    });
+  }
+
+  // Lanza la aparición. data-velocidad = ms de retraso entre una letra y la siguiente
+  // (la ola de izquierda a derecha); data-duracion = ms que tarda cada letra en resolverse.
+  function decodificar(el, retardo = 0) {
+    const velocidad = parseFloat(el.dataset.velocidad) || 1;
+    const duracion = parseFloat(el.dataset.duracion) || 400;
+    const inicio = performance.now() + retardo;
+    let espera = 0;
+    for (const s of $$('.let', el)) {
+      s.textContent = VACIO;
+      s._listo = false;
+      s._glitch = false;
+      activas.set(s, { tipo: 'aparicion', inicio: inicio + espera, dur: duracion, c: s.dataset.c });
+      espera += velocidad;
+    }
+    arrancar();
+  }
+
+  // Cambia el texto de un elemento y lo decodifica de nuevo
+  function escribir(el, texto) {
+    el.textContent = texto;
+    if (sinMovimiento) return;
+    el.classList.remove('dividido');
+    preparar(el);
+    decodificar(el);
+  }
+
+  // Al pasar el ratón por un texto, las letras cercanas se "descolocan" un momento
+  function activarGlitch(el) {
+    if (sinMovimiento || !window.matchMedia('(hover: hover)').matches) return;
+    let medidas = [];
+    let medidoEn = 0;
+    const medir = () => {
+      medidas = $$('.let', el).map(s => ({ s, r: s.getBoundingClientRect() }));
+      medidoEn = performance.now();
+    };
+    el.addEventListener('mousemove', e => {
+      if (!medidas.length || performance.now() - medidoEn > 300) medir();
+      for (const { s, r } of medidas) {
+        if (!s._listo || s._glitch) continue;
+        const dx = Math.abs(e.clientX - (r.left + r.width / 2));
+        const dy = Math.abs(e.clientY - (r.top + r.height / 2));
+        if (dx <= r.width * 1.2 && dy <= r.height) {
+          s._glitch = true;
+          activas.set(s, { tipo: 'glitch', inicio: performance.now(), dur: 1000, c: s.dataset.c });
+        }
+      }
+      arrancar();
+    });
+  }
+
+  // Si la tipografía llega tarde, se vuelven a medir las letras
+  function remedirTodo() {
+    fijarAnchos($$('.let'));
+  }
+
+  // Cada elemento se anima una sola vez, cuando entra en pantalla (como en aino.agency)
   const observador = new IntersectionObserver(entradas => {
     for (const e of entradas) {
+      if (!e.isIntersecting) continue;
       const el = e.target;
-      if (e.isIntersecting && e.intersectionRatio >= 0.25) {
-        if (!el.classList.contains('in')) {
-          el.classList.add('in');
-          if (el._alEntrar) el._alEntrar();
-        }
-      } else if (!e.isIntersecting && el.classList.contains('in')) {
-        el.classList.remove('in');
-        if (el._alSalir) el._alSalir();
-      }
+      observador.unobserve(el);
+      el.classList.add('in');
+      if (!sinMovimiento && el.hasAttribute('data-decode')) decodificar(el);
     }
-  }, { threshold: [0, 0.25] });
+  }, { threshold: 0.2 });
 
-  // Párrafo "scrub": cada palabra se enciende según avanza el scroll
-  const parrafosScrub = [];
-  function actualizarScrub() {
-    const alto = window.innerHeight;
-    for (const { el, palabras } of parrafosScrub) {
-      const arriba = el.getBoundingClientRect().top;
-      const progreso = Math.min(1, Math.max(0, (alto * 0.95 - arriba) / (alto * 0.75)));
-      palabras.forEach((p, i) => p.classList.toggle('on', sinMovimiento || i / palabras.length < progreso));
-    }
-  }
-
-  let scrubPendiente = false;
-  function alHacerScroll() {
-    if (scrubPendiente) return;
-    scrubPendiente = true;
-    requestAnimationFrame(() => { actualizarScrub(); scrubPendiente = false; });
-  }
-
-  /* ---------- 3. Contadores y barras ---------- */
-
-  function contar(nodo, hasta, duracion = 1800) {
-    cancelAnimationFrame(nodo._raf);
-    if (sinMovimiento) { nodo.textContent = formato(hasta); return; }
-    const inicio = performance.now();
-    const paso = ahora => {
-      const t = Math.min(1, (ahora - inicio) / duracion);
-      const suavizado = 1 - Math.pow(1 - t, 4);          // frena al final
-      nodo.textContent = formato(hasta * suavizado);
-      if (t < 1) nodo._raf = requestAnimationFrame(paso);
-    };
-    nodo._raf = requestAnimationFrame(paso);
-  }
-
-  function reiniciar(nodo) {
-    cancelAnimationFrame(nodo._raf);
-    if (!sinMovimiento) nodo.textContent = formato(0);
-  }
-
-  /* ---------- 6. Torbellino ---------- */
+  /* ---------- 3. Torbellino ---------- */
 
   function iniciarTorbellino() {
     const lienzo = $('#lienzo');
@@ -294,7 +375,7 @@
     ajustar();
   }
 
-  /* ---------- Arranque ---------- */
+  /* ---------- 4. Arranque ---------- */
 
   function iniciar() {
     // Total de horas y nota de días: se calculan con los datos
@@ -308,48 +389,32 @@
       nota.textContent = `horas en ${cuantos} programas de diseño. Son ${dias} días seguidos, de día y de noche.`;
     }
 
-    // Textos animados
-    $$('[data-split]').forEach(dividir);
-
-    $$('[data-split="scrub"]').forEach(el => {
-      parrafosScrub.push({ el, palabras: $$('.luz', el) });
-    });
-    actualizarScrub();
-    window.addEventListener('scroll', alHacerScroll, { passive: true });
-    window.addEventListener('resize', alHacerScroll);
-
-    // Qué elementos se animan al entrar en pantalla
-    const objetivos = new Set($$('[data-reveal]'));
-    $$('[data-split]').forEach(el => {
-      const esScrub = el.dataset.split === 'scrub';
-      const esManual = el.hasAttribute('data-manual');
-      const dentroDeReveal = el.closest('[data-reveal]');
-      if (!esScrub && !esManual && !dentroDeReveal) objetivos.add(el);
-    });
-
-    // Contador del total
-    const bloqueTotal = $('.total');
-    if (bloqueTotal && cifraTotal) {
-      reiniciar(cifraTotal);
-      bloqueTotal._alEntrar = () => contar(cifraTotal, totalHoras, 2200);
-      bloqueTotal._alSalir = () => reiniciar(cifraTotal);
-    }
-
-    // Contador y barra de cada programa
+    // Barra de cada programa: su largo es la parte de horas respecto al que más tiene
     for (const p of programas) {
-      const nodo = $('[data-cuenta]', p.el);
       p.el.style.setProperty('--parte', (p.horas / maxHoras).toFixed(4));
-      reiniciar(nodo);
-      p.el._alEntrar = () => contar(nodo, p.horas);
-      p.el._alSalir = () => reiniciar(nodo);
     }
 
-    objetivos.forEach(el => observador.observe(el));
+    // Textos decodificados
+    const textos = $$('[data-decode]');
+    const detalles = $$('.programa__interior dt, .programa__interior dd');
+    if (sinMovimiento) {
+      textos.forEach(el => el.classList.add('dividido'));
+    } else {
+      textos.forEach(preparar);
+      detalles.forEach(preparar);
+      $$('[data-hover]').forEach(activarGlitch);
+      if (document.fonts && document.fonts.addEventListener) {
+        document.fonts.addEventListener('loadingdone', remedirTodo);
+      }
+    }
 
-    /* ---------- 4. Filas desplegables ---------- */
-    $$('.programa__cabecera').forEach(boton => {
-      boton.addEventListener('click', () => {
-        const fila = boton.closest('.programa');
+    textos.filter(el => !el.hasAttribute('data-manual')).forEach(el => observador.observe(el));
+    $$('[data-reveal]').forEach(el => observador.observe(el));
+
+    /* Filas desplegables */
+    $$('.programa__cabecera').forEach(cabecera => {
+      cabecera.addEventListener('click', () => {
+        const fila = cabecera.closest('.programa');
         const abrir = !fila.classList.contains('abierto');
         // Solo una fila abierta a la vez
         $$('.programa.abierto').forEach(otra => {
@@ -357,11 +422,15 @@
           $('.programa__cabecera', otra).setAttribute('aria-expanded', 'false');
         });
         fila.classList.toggle('abierto', abrir);
-        boton.setAttribute('aria-expanded', String(abrir));
+        cabecera.setAttribute('aria-expanded', String(abrir));
+        // El detalle se decodifica al abrirse, un dato detrás de otro
+        if (abrir && !sinMovimiento) {
+          $$('dt, dd', fila).forEach((el, i) => decodificar(el, i * 90));
+        }
       });
     });
 
-    /* ---------- 5. Botón de la pregunta ---------- */
+    /* Botón de la pregunta */
     const boton = $('#boton');
     const texto = $('#texto');
     texto.setAttribute('aria-hidden', 'true');
@@ -370,13 +439,14 @@
       texto.classList.toggle('in', mostrar);
       texto.setAttribute('aria-hidden', String(!mostrar));
       boton.setAttribute('aria-expanded', String(mostrar));
-      boton.textContent = mostrar ? 'Ocultar mi pregunta' : 'Ver mi pregunta';
+      escribir(boton, mostrar ? 'Ocultar mi pregunta' : 'Ver mi pregunta');
+      if (mostrar && !sinMovimiento) decodificar(texto);
     });
 
     iniciarTorbellino();
   }
 
-  // Esperamos a la tipografía (máximo 1,2 s) para que el texto no salte al cargar
+  // Esperamos a la tipografía (máximo 2,5 s) para medir bien las letras
   const tipografia = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-  Promise.race([tipografia, new Promise(ok => setTimeout(ok, 1200))]).then(iniciar);
+  Promise.race([tipografia, new Promise(ok => setTimeout(ok, 2500))]).then(iniciar);
 })();

@@ -78,50 +78,36 @@ body {
 }
 
 /* =========================================================
-   ANIMACIÓN DE TEXTO
-   El JavaScript parte cada texto en palabras o letras.
-   Cada trozo vive dentro de una "máscara" (.pal) y sube desde abajo.
+   ANIMACIÓN DE TEXTO · "decodificado"
+   Como en aino.agency: cada letra parte en blanco y pasa por símbolos,
+   de más claros a más densos, hasta convertirse en la letra real.
+   El JavaScript parte el texto en letras (.let) con un ancho fijo,
+   así la maquetación no se mueve mientras cambian los símbolos.
    ========================================================= */
 
 /* Mientras el JS prepara el texto, se oculta para que no parpadee.
    Si el JS fallara, a los 3 s se muestra igualmente. */
-.js [data-split]:not(.dividido) {
+.js [data-decode]:not(.dividido) {
   visibility: hidden;
   animation: mostrar 0s 3s forwards;
 }
 @keyframes mostrar { to { visibility: visible; } }
 
 .pal {
-  display: inline-block;
-  overflow: hidden;
-  vertical-align: top;
-  padding-block: .18em;
-  margin-block: -.18em;
+  display: inline-block;      /* una palabra nunca se parte en dos líneas */
+  white-space: nowrap;
 }
 
-.let,
-.pal__i {
-  display: inline-block;
-  transform: translateY(135%);
-  transition: transform 1s var(--ease-out);
-  transition-delay: calc(var(--i, 0) * 24ms);
-  will-change: transform;
+.let {
+  display: inline-flex;
+  justify-content: center;    /* el símbolo se centra en el hueco de su letra */
+  white-space: pre;
+  font-kerning: none;
 }
 
-.in .let,
-.in .pal__i,
-.let.in,
-.pal__i.in { transform: none; }
-
-.in[data-split] .pal__i,
-.in[data-split] .let { transform: none; }
-
-/* Párrafo que se ilumina palabra a palabra con el scroll */
-.luz {
-  opacity: .14;
-  transition: opacity .4s ease;
-}
-.luz.on { opacity: 1; }
+/* La pregunta de la portada aparece y desaparece con el botón */
+.js #texto { transition: opacity .3s ease; }
+.js #texto:not(.in) { opacity: 0; }
 
 /* =========================================================
    PANTALLA 1 · Portada
@@ -472,15 +458,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-snap-type: none; }
 
-  .let, .pal__i { transform: none; transition: none; }
-  .luz { opacity: 1; transition: none; }
-
   .programa__cuerpo,
   .programa__icono::before,
   .programa__icono::after { transition: none; }
   .programa__barra { transform: scaleX(1); transition: none; }
-
-  /* La pregunta se muestra con un fundido en vez de subir */
-  #texto { opacity: 0; transition: opacity .2s ease; }
-  #texto.in { opacity: 1; }
 }

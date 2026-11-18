@@ -23,12 +23,12 @@
 
     <!-- ============ PANTALLA 1 · Portada ============ -->
     <section class="banda banda--oscura portada" id="portada">
-      <h1 data-split="chars">Web De Dades Sobre La Inversió De Temps En El Disseny</h1>
+      <h1 data-decode data-velocidad="4" data-duracion="800">Web De Dades Sobre La Inversió De Temps En El Disseny</h1>
 
       <div class="portada__pie">
         <div class="pregunta">
-          <button id="boton" type="button" aria-expanded="false" aria-controls="texto">Ver mi pregunta</button>
-          <p id="texto" data-split="words" data-manual>Quant de temps dediquen els dissenyadors a aprendre/dominar els programes de disseny?</p>
+          <button id="boton" type="button" aria-expanded="false" aria-controls="texto" data-decode data-hover>Ver mi pregunta</button>
+          <p id="texto" data-decode data-manual data-velocidad="2" data-duracion="500">Quant de temps dediquen els dissenyadors a aprendre/dominar els programes de disseny?</p>
         </div>
         <p class="pista">Baja para ver las horas</p>
       </div>
@@ -36,20 +36,20 @@
 
     <!-- ============ PANTALLA 2 · Lo que no se ve ============ -->
     <section class="banda banda--clara manifiesto" id="proceso">
-      <p class="declaracion" data-split="scrub">«¿Y tú de qué vas a trabajar? Lo tuyo es fácil, ¿no? ¿No hacéis exámenes?» Siempre me preguntan lo mismo. Del diseño solo se ve el resultado: no se ven las mil pruebas ni las ideas descartadas, ni el tiempo que lleva dominar cada programa.</p>
+      <p class="declaracion" data-decode data-velocidad="1" data-duracion="600">«¿Y tú de qué vas a trabajar? Lo tuyo es fácil, ¿no? ¿No hacéis exámenes?» Siempre me preguntan lo mismo. Del diseño solo se ve el resultado: no se ven las mil pruebas ni las ideas descartadas, ni el tiempo que lleva dominar cada programa.</p>
 
-      <div class="total" data-reveal>
+      <div class="total">
         <!-- El total se calcula solo sumando las horas de los programas (pantalla 4) -->
-        <p class="total__cifra"><span data-total>6.486,48</span> <span class="total__unidad">h</span></p>
-        <p class="total__nota" data-split="words" data-nota-dias>horas en siete programas de diseño. Son 270 días seguidos, de día y de noche.</p>
+        <p class="total__cifra" data-decode data-velocidad="15" data-duracion="700"><span data-total>6.486,48</span> <span class="total__unidad">h</span></p>
+        <p class="total__nota" data-decode data-nota-dias>horas en siete programas de diseño. Son 270 días seguidos, de día y de noche.</p>
       </div>
     </section>
 
     <!-- ============ PANTALLA 3 · El torbellino ============ -->
     <section class="banda banda--oscura torbellino" id="torbellino">
       <canvas id="lienzo" aria-hidden="true"></canvas>
-      <h2 class="torbellino__titulo" data-split="words">Estas horas no se ven en el resultado final.</h2>
-      <p class="torbellino__leyenda" data-split="words">Cada cifra es un programa. Cuantas más horas, más grande y más frecuente.</p>
+      <h2 class="torbellino__titulo" data-decode data-velocidad="3" data-duracion="700">Estas horas no se ven en el resultado final.</h2>
+      <p class="torbellino__leyenda" data-decode>Cada cifra es un programa. Cuantas más horas, más grande y más frecuente.</p>
     </section>
 
     <!-- ============ PANTALLA 4 · Los datos ============ -->
@@ -58,15 +58,15 @@
       El torbellino, las barras y el total se actualizan solos a partir de data-horas.
     -->
     <section class="banda banda--clara datos" id="datos">
-      <h2 class="datos__titulo" data-split="words">Horas acumuladas en cada programa</h2>
+      <h2 class="datos__titulo" data-decode data-velocidad="3" data-duracion="700">Horas acumuladas en cada programa</h2>
 
       <ul class="programas">
 
         <li class="programa" data-nombre="Figma" data-horas="1786.61" data-reveal>
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-figma">
-            <span class="programa__nombre" data-split="chars">Figma</span>
-            <span class="programa__horas"><span data-cuenta>1.786,61</span> h</span>
-            <span class="programa__sesion">Sesión media 1h 52m</span>
+            <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Figma</span>
+            <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.786,61 h</span>
+            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 52m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-figma">
@@ -83,9 +83,9 @@
 
         <li class="programa" data-nombre="Photoshop" data-horas="1415.25" data-reveal>
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-photoshop">
-            <span class="programa__nombre" data-split="chars">Photoshop</span>
-            <span class="programa__horas"><span data-cuenta>1.415,25</span> h</span>
-            <span class="programa__sesion">Sesión media 1h 38m</span>
+            <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Photoshop</span>
+            <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.415,25 h</span>
+            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 38m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-photoshop">
@@ -101,9 +101,9 @@
 
         <li class="programa" data-nombre="Illustrator" data-horas="1238.80" data-reveal>
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-illustrator">
-            <span class="programa__nombre" data-split="chars">Illustrator</span>
-            <span class="programa__horas"><span data-cuenta>1.238,80</span> h</span>
-            <span class="programa__sesion">Sesión media 1h 24m</span>
+            <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Illustrator</span>
+            <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.238,80 h</span>
+            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 24m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-illustrator">
@@ -119,9 +119,9 @@
 
         <li class="programa" data-nombre="Premiere Pro" data-horas="867.95" data-reveal>
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-premiere">
-            <span class="programa__nombre" data-split="chars">Premiere Pro</span>
-            <span class="programa__horas"><span data-cuenta>867,95</span> h</span>
-            <span class="programa__sesion">Sesión media 2h 45m</span>
+            <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Premiere Pro</span>
+            <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">867,95 h</span>
+            <span class="programa__sesion" data-decode data-hover>Sesión media 2h 45m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-premiere">
@@ -137,9 +137,9 @@
 
         <li class="programa" data-nombre="After Effects" data-horas="602.80" data-reveal>
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-aftereffects">
-            <span class="programa__nombre" data-split="chars">After Effects</span>
-            <span class="programa__horas"><span data-cuenta>602,80</span> h</span>
-            <span class="programa__sesion">Sesión media 2h 10m</span>
+            <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">After Effects</span>
+            <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">602,80 h</span>
+            <span class="programa__sesion" data-decode data-hover>Sesión media 2h 10m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-aftereffects">
@@ -155,9 +155,9 @@
 
         <li class="programa" data-nombre="InDesign" data-horas="430.29" data-reveal>
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-indesign">
-            <span class="programa__nombre" data-split="chars">InDesign</span>
-            <span class="programa__horas"><span data-cuenta>430,29</span> h</span>
-            <span class="programa__sesion">Sesión media 1h 45m</span>
+            <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">InDesign</span>
+            <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">430,29 h</span>
+            <span class="programa__sesion" data-decode data-hover>Sesión media 1h 45m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-indesign">
@@ -173,9 +173,9 @@
 
         <li class="programa" data-nombre="Bridge" data-horas="144.78" data-reveal>
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-bridge">
-            <span class="programa__nombre" data-split="chars">Bridge</span>
-            <span class="programa__horas"><span data-cuenta>144,78</span> h</span>
-            <span class="programa__sesion">Sesión media 11 min</span>
+            <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Bridge</span>
+            <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">144,78 h</span>
+            <span class="programa__sesion" data-decode data-hover>Sesión media 11 min</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-bridge">
@@ -191,7 +191,7 @@
 
       </ul>
 
-      <p class="cierre" data-split="words">El resultado se ve en un segundo. Llegar a él lleva miles de horas.</p>
+      <p class="cierre" data-decode data-velocidad="3" data-duracion="700">El resultado se ve en un segundo. Llegar a él lleva miles de horas.</p>
     </section>
 
   </main>
