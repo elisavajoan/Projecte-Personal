@@ -445,6 +445,21 @@
       if (mostrar && !sinMovimiento) decodificar(texto);
     });
 
+    /* Referentes: la captura y el texto entran por los lados al llegar a la pantalla */
+    const referentes = $$('.ref');
+    if (sinMovimiento) {
+      referentes.forEach(r => r.classList.add('activa'));
+    } else {
+      const observadorRef = new IntersectionObserver(entradas => {
+        for (const e of entradas) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add('activa');
+          observadorRef.unobserve(e.target);
+        }
+      }, { threshold: 0.35 });
+      referentes.forEach(r => observadorRef.observe(r));
+    }
+
     /* Cabecera: se esconde al bajar y reaparece al subir */
     const cabecera = $('.cabecera');
     if (cabecera) {

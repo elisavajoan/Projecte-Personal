@@ -2,6 +2,7 @@
    LES HORES EN EL DISSENY · style.css
    Negro y blanco. Cuatro pantallas que se alternan:
    portada (negro) · proceso (blanco) · torbellino (negro) · datos (blanco)
+   y, al final, cinco pantallas negras con los referentes del proyecto.
    ========================================================= */
 
 :root {
@@ -21,10 +22,14 @@
      negativo: cuanto más grande el texto, más apretado. */
   --fuente: Helvetica, "Helvetica Neue", Arial, sans-serif;
   --peso: 700;
+  --t-xxl: -0.1em;                    /* títulos de los referentes (como en el Figma) */
   --t-xl: -0.05em;                    /* titulares */
   --t-l: -0.03em;                     /* textos grandes y cifras */
   --t-m: -0.025em;                    /* texto normal */
   --t-s: -0.015em;                    /* texto pequeño */
+
+  --texto-ref: #f4f4f4;               /* gris claro del Figma para los textos de los referentes */
+  --peso-lectura: var(--peso);        /* peso de los párrafos de los referentes (400 = Regular, como en el Figma) */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -204,6 +209,35 @@ body {
   line-height: 1.15;
   letter-spacing: var(--t-l);
 }
+
+/* Columna derecha de la portada: enlaces a los referentes + la pista */
+.portada__lateral {
+  display: grid;
+  justify-items: end;
+  gap: 1.5rem;
+  margin-left: auto;
+}
+
+.referentes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .35rem 1.75rem;
+  max-width: 34rem;
+}
+.referentes a {
+  font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  font-style: italic;
+  letter-spacing: var(--t-m);
+  color: inherit;
+  text-decoration: none;
+  /* La raya va como borde (el subrayado normal no pasa por las letras sueltas del efecto) */
+  padding-bottom: .04em;
+  border-bottom: .07em solid transparent;
+  transition: border-color .25s ease;
+}
+.referentes a:hover,
+.referentes a:focus-visible { border-bottom-color: currentColor; }
 
 .pista {
   display: flex;
@@ -463,14 +497,116 @@ body {
 }
 
 /* =========================================================
+   PANTALLAS 5 a 9 · Los referentes
+   Captura grande pegada al borde (71 % del ancho) y el texto al lado (29 %),
+   como en el Figma. En ref--espejo va al revés. Imagen y texto entran
+   desde los lados cuando la pantalla llega (clase .activa, la pone el JS).
+   ========================================================= */
+
+.ref {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;          /* la captura queda pegada al borde de abajo */
+  padding: calc(var(--margen) + var(--cabecera)) 0 0;
+}
+
+.ref__escena {
+  display: grid;
+  grid-template-columns: minmax(0, 71fr) minmax(0, 29fr);
+  column-gap: clamp(.75rem, 1.2vw, 1.5rem);
+  align-items: start;
+}
+.ref--espejo .ref__escena { grid-template-columns: minmax(0, 29fr) minmax(0, 71fr); }
+.ref--espejo .ref__imagen { grid-column: 2; grid-row: 1; }
+.ref--espejo .ref__texto  { grid-column: 1; grid-row: 1; }
+
+.ref__imagen {
+  align-self: end;
+  margin: 0;                          /* quita el margen por defecto de <figure> */
+}
+.ref__imagen img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ref__texto {
+  padding-right: var(--margen);
+  color: var(--texto-ref);
+}
+.ref--espejo .ref__texto {
+  padding-right: 0;
+  padding-left: var(--margen);
+  text-align: right;
+}
+
+.ref__titulo {
+  margin: 0 0 .45em;
+  font-size: clamp(2rem, 3.27vw, 3.9rem);
+  line-height: 1.05;
+  letter-spacing: var(--t-xxl);
+  color: var(--blanco);
+}
+
+.ref__texto p {
+  margin: 0 0 1.4em;
+  font-size: clamp(1rem, 1.47vw, 1.5rem);
+  font-weight: var(--peso-lectura);
+  line-height: 1.4;
+  letter-spacing: var(--t-m);
+}
+
+.ref__enlace {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+  /* La raya va como borde (el subrayado normal no pasa por las letras sueltas del efecto) */
+  padding-bottom: .04em;
+  border-bottom: .07em solid currentColor;
+  line-height: 1.2;
+}
+
+/* Entrada por los lados: la captura desde su borde, el texto desde el contrario */
+.js .ref__imagen,
+.js .ref__texto {
+  transition: transform 1.1s var(--ease-out), opacity .8s ease;
+}
+.js .ref:not(.activa) .ref__imagen { transform: translateX(-100%); opacity: 0; }
+.js .ref:not(.activa) .ref__texto  { transform: translateX(calc(100% + var(--margen))); opacity: 0; }
+.js .ref--espejo:not(.activa) .ref__imagen { transform: translateX(100%); }
+.js .ref--espejo:not(.activa) .ref__texto  { transform: translateX(calc(-100% - var(--margen))); }
+
+/* =========================================================
    MÓVIL
    ========================================================= */
+
+@media (max-width: 900px) {
+  /* Referentes: la captura arriba a todo el ancho y el texto debajo */
+  .ref { justify-content: flex-start; }
+  .ref__escena,
+  .ref--espejo .ref__escena {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 1.75rem;
+  }
+  .ref__imagen,
+  .ref--espejo .ref__imagen { grid-column: 1; grid-row: 1; }
+  .ref__texto,
+  .ref--espejo .ref__texto {
+    grid-column: 1; grid-row: 2;
+    padding: 0 var(--margen) var(--margen);
+    text-align: left;
+  }
+  .ref__titulo { font-size: clamp(2rem, 9vw, 3.2rem); }
+  .ref__texto p { font-size: 1.05rem; }
+}
 
 @media (max-width: 720px) {
   :root { --cabecera: 4.25rem; }
   .logo img { height: 2.75rem; }
 
   .portada__pie { flex-direction: column; align-items: flex-start; }
+  .portada__lateral { margin-left: 0; justify-items: start; }
+  .referentes { justify-content: flex-start; }
   #boton { width: 100%; }
 
   .programa__cabecera {
@@ -496,6 +632,13 @@ body {
   .cabecera,
   .programa__cuerpo,
   .programa__icono::before,
-  .programa__icono::after { transition: none; }
+  .programa__icono::after,
+  .referentes a { transition: none; }
+
+  /* Los referentes se ven directamente, sin entrar por los lados */
+  .js .ref__imagen,
+  .js .ref__texto { transition: none; }
+  .js .ref:not(.activa) .ref__imagen,
+  .js .ref:not(.activa) .ref__texto { transform: none; opacity: 1; }
   .programa__barra { transform: scaleX(1); transition: none; }
 }
