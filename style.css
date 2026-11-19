@@ -77,8 +77,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--blanco);
-  mix-blend-mode: difference;         /* blanco sobre negro, negro sobre blanco */
   pointer-events: none;
   transition: transform .45s var(--ease-in-out);
 }
@@ -92,8 +90,7 @@ body {
 .logo img {
   display: block;
   height: 3.5rem;
-  width: auto;
-  filter: brightness(0) invert(1);    /* cualquier logo se ve en blanco */
+  width: auto;                        /* el logo ya trae sus colores: letras blancas con contorno negro */
 }
 
 /* ---------- Bandas (cada pantalla) ---------- */
