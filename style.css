@@ -23,10 +23,10 @@
   --fuente: Helvetica, "Helvetica Neue", Arial, sans-serif;
   --peso: 700;
   --t-xxl: -0.1em;                    /* títulos de los referentes (como en el Figma) */
-  --t-xl: -0.05em;                    /* titulares */
-  --t-l: -0.03em;                     /* textos grandes y cifras */
-  --t-m: -0.025em;                    /* texto normal */
-  --t-s: -0.015em;                    /* texto pequeño */
+  --t-xl: -0.07em;                    /* titulares */
+  --t-l: -0.045em;                    /* textos grandes */
+  --t-m: -0.035em;                    /* texto normal */
+  --t-s: -0.025em;                    /* texto pequeño */
 
   --texto-ref: #f4f4f4;               /* gris claro del Figma para los textos de los referentes */
   --peso-lectura: var(--peso);        /* peso de los párrafos de los referentes (400 = Regular, como en el Figma) */
@@ -277,7 +277,7 @@ body {
   margin: 0;
   font-size: clamp(4.5rem, 17vw, 19rem);
   line-height: .85;
-  letter-spacing: var(--t-l);         /* un poco más abierto: los dígitos grandes se pisan */
+  letter-spacing: -0.03em;            /* algo más abierto que los titulares: con más, los dígitos grandes se pisan */
   font-variant-numeric: tabular-nums;
 }
 .total__unidad { font-size: .38em; letter-spacing: 0; }

@@ -330,12 +330,12 @@
         ctx.fillStyle = `rgba(255,255,255,${alfa.toFixed(3)})`;
 
         ctx.font = `700 ${tam.toFixed(1)}px ${fuente}`;
-        if (admiteTracking) ctx.letterSpacing = `${(-tam * 0.03).toFixed(2)}px`;
+        if (admiteTracking) ctx.letterSpacing = `${(-tam * 0.04).toFixed(2)}px`;
         ctx.fillText(p.texto, x, y);
 
         const tamNombre = Math.max(10, tam * 0.26);
         ctx.font = `700 ${tamNombre.toFixed(1)}px ${fuente}`;
-        if (admiteTracking) ctx.letterSpacing = `${(-tamNombre * 0.015).toFixed(2)}px`;
+        if (admiteTracking) ctx.letterSpacing = `${(-tamNombre * 0.025).toFixed(2)}px`;
         ctx.fillText(p.nombre, x, y + tam * 0.62);
       }
     }
