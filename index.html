@@ -14,6 +14,14 @@
 </head>
 <body>
 
+  <!-- ============ Pantalla de entrada ============
+       Una figura hecha de números gira con el ratón y no se pasa a la web hasta hacer clic.
+       (El dibujo lo hace script.js; el botón ocupa toda la pantalla y sirve también con el teclado.) -->
+  <div class="entrada" id="entrada">
+    <canvas class="entrada__lienzo" aria-hidden="true"></canvas>
+    <button class="entrada__boton" type="button" disabled aria-label="Entrar a Les Hores En El Disseny"></button>
+  </div>
+
   <!-- ============ Cabecera · tres botones arriba a la derecha ============
        De momento no hacen nada: solo cambian a oblicua al pasar el ratón.
        El texto se ve blanco sobre las pantallas negras y negro sobre las blancas. -->
@@ -279,6 +287,46 @@
     </section>
 
   </main>
+
+  <!-- ============ Pie ============
+       Estructura del pie de aino.agency: fila «explora» en cuatro columnas, nombre gigante
+       y una última fila con la hora en directo. -->
+  <footer class="banda banda--oscura pie" id="pie" lang="ca">
+    <div class="pie__explora">
+      <h2 class="pie__etiqueta" data-decode data-velocidad="10" data-duracion="500">Explora</h2>
+
+      <nav class="pie__columna" aria-label="Referents">
+        <ul class="pie__lista">
+          <li><a href="#ref-mesh3d" data-decode data-velocidad="8" data-duracion="500">Mesh 3D</a></li>
+          <li><a href="#ref-stateofaidesign" data-decode data-velocidad="8" data-duracion="500">State of Ai Design</a></li>
+          <li><a href="#ref-aino" data-decode data-velocidad="8" data-duracion="500">Aino.Agency</a></li>
+          <li><a href="#ref-pinnacl" data-decode data-velocidad="8" data-duracion="500">Pinnacl</a></li>
+          <li><a href="#ref-mirage" data-decode data-velocidad="8" data-duracion="500">Studio Mirage</a></li>
+        </ul>
+      </nav>
+
+      <nav class="pie__columna" aria-label="El projecte">
+        <ul class="pie__lista">
+          <li><a href="#proceso" data-decode data-velocidad="8" data-duracion="500">Les hores totals</a></li>
+          <li><a href="#datos" data-decode data-velocidad="8" data-duracion="500">Els set programes</a></li>
+        </ul>
+      </nav>
+
+      <div class="pie__cta">
+        <p data-decode data-velocidad="3" data-duracion="600">Quant de temps dediquen els dissenyadors a aprendre els programes de disseny?</p>
+        <a class="pie__boton" href="#portada" data-decode data-velocidad="10" data-duracion="500">Torna a l'inici</a>
+      </div>
+    </div>
+
+    <p class="pie__marca" data-decode data-velocidad="20" data-duracion="900">Les Hores En El Disseny</p>
+
+    <div class="pie__meta">
+      <p><span>BCN</span> <span class="pie__reloj" data-reloj aria-hidden="true"></span></p>
+      <p>Elisava</p>
+      <p>Investigació, contextualització i conceptualització</p>
+      <p>2026</p>
+    </div>
+  </footer>
 
   <!-- El JavaScript va al final, cuando la página ya está cargada -->
   <script src="script.js"></script>

@@ -560,7 +560,7 @@
       const el = e.target;
       observador.unobserve(el);
       el.classList.add('in');
-      if (!sinMovimiento && el.hasAttribute('data-decode')) decodificar(el);
+      if (!sinMovimiento && el.hasAttribute('data-decode')) decodificar(el, retardoCascada(el));
     }
   }, { threshold: 0.2 });
 
@@ -710,6 +710,328 @@
     ajustar();
   }
 
+  /* ---------- 3b. Pantalla de entrada ----------
+     Como en aino.agency: una barra de «=» que se llena, una figura 3D hecha de números
+     y letras (aquí, un reloj de arena) que gira con el ratón, y no se pasa a la web
+     hasta hacer clic. Al hacer clic, la figura se deshace de arriba abajo y la portada
+     se va formando detrás, en cascada. */
+
+  const RAMPA_ESCENA = ' .-:/+=<>!?I73254689ON';   // de más claro a más denso
+  const ONDA_MS = 1900;                            // lo que tarda el frente de la cascada en cruzar la pantalla
+  const ONDA_BANDA = 14;                           // filas de caracteres sueltos que van delante del frente
+  let cascada = null;                              // { t0, ms, filas, ch, banda } mientras dura la cascada
+
+  // Cuándo (ms desde ahora) llega el frente de la cascada a la altura de un elemento
+  function retardoCascada(el) {
+    if (!cascada) return 0;
+    const fila = Math.max(0, el.getBoundingClientRect().top) / cascada.ch;
+    return Math.max(0, cascada.t0 + (fila / (cascada.filas + cascada.banda)) * cascada.ms - performance.now());
+  }
+
+  function iniciarEntrada() {
+    const raiz = $('#entrada');
+    if (!raiz) return null;
+    if (location.hash) { raiz.remove(); return null; }     // un enlace directo a una sección va sin pantalla de entrada
+
+    const lienzo = $('.entrada__lienzo', raiz);
+    const boton = $('.entrada__boton', raiz);
+    const ctx = lienzo.getContext('2d');
+    const raizHtml = document.documentElement;
+    raiz.dataset.activa = '';
+    raizHtml.classList.add('cargando');
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
+    let resolver;
+    const clic = new Promise(ok => { resolver = ok; });
+
+    // --- Rejilla de caracteres ---
+    let cols = 0, filas = 0, cw = 8, ch = 16, dpr = 1, tam = 12;
+    let celdas, prof;                                  // código de carácter de cada casilla y profundidad
+    const sprites = new Map();
+
+    function medir() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      const W = window.innerWidth, H = window.innerHeight;
+      tam = Math.max(10, Math.min(15, W / 120));
+      ctx.font = `500 ${tam}px ${FUENTE_MOSAICO}`;
+      cw = ctx.measureText('M').width + tam * 0.045;
+      ch = tam * 1.32;
+      cols = Math.floor(W / cw);
+      filas = Math.floor(H / ch);
+      lienzo.width = Math.round(W * dpr); lienzo.height = Math.round(H * dpr);
+      celdas = new Uint16Array(cols * filas);
+      prof = new Float32Array(cols * filas);
+      sprites.clear();
+    }
+
+    function sprite(cod) {
+      let sp = sprites.get(cod);
+      if (!sp) {
+        const w = Math.max(1, Math.round(cw * dpr)), h = Math.max(1, Math.round(ch * dpr));
+        sp = document.createElement('canvas');
+        sp.width = w; sp.height = h;
+        const c = sp.getContext('2d');
+        c.fillStyle = '#fff';
+        c.font = `500 ${tam * dpr}px ${FUENTE_MOSAICO}`;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(String.fromCharCode(cod), w / 2, h / 2 + h * 0.04);
+        sprites.set(cod, sp);
+      }
+      return sp;
+    }
+
+    // --- La figura: un reloj de arena acanalado y retorcido, dibujado con una escala de caracteres ---
+    // Dos parches de superficie: el cuerpo (de arriba abajo) y las dos tapas planas.
+    const NT = 170, NTH = 320, NC = 36;
+    const costh = new Float32Array(NTH + 1), senth = new Float32Array(NTH + 1);
+    for (let i = 0; i <= NTH; i++) { costh[i] = Math.cos(i / NTH * TAU); senth[i] = Math.sin(i / NTH * TAU); }
+    const LUZ = (() => { const v = [-0.45, 0.6, -0.65]; const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); return v.map(x => x / n); })();
+    const pt = new Float32Array(9);
+    const DIST = 3.4, ALTO = 1.15, R_TAPA = 0.72;
+    let rotA = 1, rotB = 0, rotC = 1, rotD = 0, formaAct = 1, giroAct = 0;
+
+    // Radio según la altura (s = 0 en el cuello, 1 en las tapas): cuello fino, panza a media altura
+    function radio(s) {
+      if (s < 0.5) return 0.1 + 0.9 * Math.pow(Math.sin(s / 0.5 * Math.PI / 2), 1.2);
+      const u = (s - 0.5) / 0.5;
+      return 1 - (1 - R_TAPA) * u * u;
+    }
+
+    // Punto de la superficie con la rotación ya aplicada. parche 0 = cuerpo, 1 y 2 = tapas
+    function punto(out, o, parche, i, a) {
+      const c = costh[i], sn = senth[i];
+      let x0, y0, z0;
+      if (parche === 0) {
+        const t = -1 + a * (2 / NT);
+        const r = radio(Math.abs(t)) * formaAct * (1 + 0.16 * Math.cos(5 * (i / NTH * TAU + giroAct) + 3 * t));
+        x0 = r * c; z0 = r * sn; y0 = t * ALTO;
+      } else {
+        const r = (a / NC) * R_TAPA * formaAct;
+        x0 = r * c; z0 = r * sn; y0 = (parche === 1 ? 1 : -1) * ALTO;
+      }
+      const x1 = x0 * rotA + z0 * rotB, z1 = -x0 * rotB + z0 * rotA;                 // giro sobre su eje
+      out[o] = x1;
+      out[o + 1] = y0 * rotC - z1 * rotD;                                              // inclinación
+      out[o + 2] = y0 * rotD + z1 * rotC;
+    }
+
+    function figura(forma, giro, inclina) {
+      celdas.fill(0); prof.fill(0);
+      rotA = Math.cos(giro * 0.35); rotB = Math.sin(giro * 0.35);
+      rotC = Math.cos(inclina); rotD = Math.sin(inclina);
+      formaAct = forma; giroAct = giro;
+      const aspecto = ch / cw;
+      // la figura cabe en alto y también en ancho (en vertical, en móvil)
+      const escala = Math.min(filas * 0.33, cols * 0.4 / aspecto) * DIST;
+      const cx = cols / 2, cy = filas / 2;
+      for (let parche = 0; parche < 3; parche++) {
+        const n = parche === 0 ? NT : NC;
+        for (let a = 0; a < n; a++) {
+          for (let i = 0; i < NTH; i++) {
+            punto(pt, 0, parche, i, a);
+            punto(pt, 3, parche, i + 1, a);
+            punto(pt, 6, parche, i, a + 1);
+            const z = pt[2] + DIST;
+            const col = Math.floor(cx + pt[0] * escala * aspecto / z);
+            const fila = Math.floor(cy - pt[1] * escala / z);
+            if (col < 0 || col >= cols || fila < 0 || fila >= filas) continue;
+            const k = fila * cols + col;
+            const inv = 1 / z;
+            if (inv <= prof[k]) continue;
+            // Normal = producto vectorial de las dos tangentes
+            const ux = pt[3] - pt[0], uy = pt[4] - pt[1], uz = pt[5] - pt[2];
+            const vx = pt[6] - pt[0], vy = pt[7] - pt[1], vz = pt[8] - pt[2];
+            let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+            const nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+            nx /= nl; ny /= nl; nz /= nl;
+            if (nz > 0) { nx = -nx; ny = -ny; nz = -nz; }                              // la cara que mira a la cámara
+            const luz = Math.max(0, nx * LUZ[0] + ny * LUZ[1] + nz * LUZ[2]);
+            const v = 0.22 * (-nz) + 0.78 * luz;                                        // los bordes salen más claros
+            prof[k] = inv;
+            celdas[k] = RAMPA_ESCENA.charCodeAt(1 + Math.min(RAMPA_ESCENA.length - 2, Math.floor(v * (RAMPA_ESCENA.length - 1))));
+          }
+        }
+      }
+    }
+
+    // --- Textos sobre la rejilla ---
+    function escribir(texto, fila, col, t, retraso = 0) {
+      for (let i = 0; i < texto.length; i++) {
+        const c = col + i;
+        if (fila < 0 || fila >= filas || c < 0 || c >= cols) continue;
+        const letra = texto[i];
+        if (letra === ' ') { celdas[fila * cols + c] = 0; continue; }
+        // las letras aparecen entre ruido y se asientan una tras otra
+        const edad = (t - retraso - i * 28) / 380;
+        const cod = edad >= 1 ? letra.charCodeAt(0)
+          : edad > 0 ? RAMPA.charCodeAt(Math.floor(Math.random() * 40)) : 0;
+        celdas[fila * cols + c] = cod;
+      }
+    }
+
+    // --- Estado ---
+    let fase = 'cargando';                  // cargando → lista → saliendo
+    const t0 = performance.now();
+    let listo = false;
+    let tClic = 0;
+    let giro = 0, inclina = 0.3, giroVel = 0.5;
+    const raton = { x: 0.5, y: 0.5, cx: -99, cy: -99 };
+    const DUR_CARGA = 2300;
+    const cargada = document.readyState === 'complete'
+      ? Promise.resolve() : new Promise(ok => window.addEventListener('load', ok, { once: true }));
+    let paginaCargada = false;
+    cargada.then(() => { paginaCargada = true; });
+    const fuentes = (document.fonts && document.fonts.ready) || Promise.resolve();
+    let fuentesListas = false;
+    fuentes.then(() => { fuentesListas = true; });
+
+    window.addEventListener('pointermove', e => {
+      raton.x = e.clientX / window.innerWidth; raton.y = e.clientY / window.innerHeight;
+      raton.cx = e.clientX / cw; raton.cy = e.clientY / ch;
+    }, { passive: true });
+
+    const formato2 = n => String(n).padStart(2, '0');
+    const suaveSalida = x => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+
+    let ultimo = t0;
+    function cuadro(ahora) {
+      const dt = Math.min(0.05, (ahora - ultimo) / 1000);
+      ultimo = ahora;
+      const t = ahora - t0;
+
+      // El ratón manda: a la derecha gira más rápido, arriba y abajo inclina
+      giroVel = lerp(giroVel, 0.35 + (raton.x - 0.5) * 2.8, 0.04);
+      giro += giroVel * dt;
+      inclina = lerp(inclina, 0.05 + raton.y * 0.6, 0.05);
+
+      // La figura empieza como una línea de caracteres y se abre
+      const forma = 0.02 + 0.98 * suaveSalida((t - 1000) / 1700);
+      figura(forma, giro, inclina);
+
+      // Caracteres que se alborotan cerca del puntero
+      const R = 7;
+      for (let f = Math.max(0, Math.floor(raton.cy - R)); f <= Math.min(filas - 1, Math.ceil(raton.cy + R)); f++) {
+        for (let c = Math.max(0, Math.floor(raton.cx - R * 1.8)); c <= Math.min(cols - 1, Math.ceil(raton.cx + R * 1.8)); c++) {
+          const k = f * cols + c;
+          if (!celdas[k]) continue;
+          const dx = (c - raton.cx) / 1.8, dy = f - raton.cy;
+          if (dx * dx + dy * dy < R * R && Math.random() < 0.4) {
+            celdas[k] = RAMPA.charCodeAt(Math.floor(Math.random() * RAMPA.length));
+          }
+        }
+      }
+
+      // Barra de carga, textos y aviso
+      const progreso = Math.min(1, t / DUR_CARGA);
+      const barra = Math.round(suaveSalida(progreso) * Math.min(40, cols * 0.3));
+      for (let i = 0; i < barra; i++) celdas[i] = 61;                                // «=»
+      escribir('LES HORES EN EL DISSENY', 1, 0, t, 200);
+      const hora = new Date();
+      const reloj = `${formato2(hora.getHours())}:${formato2(hora.getMinutes())}:${formato2(hora.getSeconds())}`;
+      if (cols > 90) escribir('BCN ' + reloj, 1, cols - 12, t, 400);
+
+      if (!listo && progreso >= 1 && t > 2700 && paginaCargada && fuentesListas) {
+        listo = true; fase = 'lista';
+        boton.disabled = false;
+        boton.focus({ preventScroll: true });
+      }
+      if (fase === 'cargando') {
+        escribir(`CARREGANT ${formato2(Math.round(progreso * 100))}%`, filas - 2, Math.floor((cols - 14) / 2), t, 300);
+      } else if (fase === 'lista') {
+        const parpadeo = Math.floor(ahora / 520) % 2 === 0;
+        escribir('CLICA PER ENTRAR' + (parpadeo ? '_' : ' '), filas - 2, Math.floor((cols - 17) / 2), t, 0);
+      }
+
+      // --- Dibujo ---
+      let yFrente = 0;                                    // por encima de esta fila ya se ve la web
+      let frente = -1;
+      if (fase === 'saliendo') {
+        frente = (ahora - tClic) / ONDA_MS * (filas + ONDA_BANDA);
+        yFrente = Math.max(0, Math.min(filas, frente - ONDA_BANDA));
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, Math.round(yFrente * ch * dpr), lienzo.width, lienzo.height);   // el negro tapa lo que aún no ha llegado
+      for (let f = 0; f < filas; f++) {
+        const d = frente - f;                              // cuánto ha pasado el frente por esta fila
+        if (fase === 'saliendo' && d >= ONDA_BANDA) continue;
+        for (let c = 0; c < cols; c++) {
+          let cod = celdas[f * cols + c];
+          if (fase === 'saliendo' && d > 0) {              // dentro de la franja: se deshace en caracteres sueltos
+            const vivo = 1 - d / ONDA_BANDA;
+            if (Math.random() > vivo) continue;
+            if (Math.random() < 0.6 || !cod) cod = RAMPA.charCodeAt(Math.floor(Math.random() * RAMPA.length));
+          }
+          if (!cod || cod === 32) continue;
+          ctx.drawImage(sprite(cod), Math.round(c * cw * dpr), Math.round(f * ch * dpr));
+        }
+      }
+
+      if (fase === 'saliendo' && frente - filas >= ONDA_BANDA) { terminar(); return; }
+      requestAnimationFrame(cuadro);
+    }
+
+    function terminar() {
+      raiz.remove();
+      raizHtml.classList.remove('cargando');
+      cascada = null;
+    }
+
+    function entrar() {
+      if (fase !== 'lista') return;
+      fase = 'saliendo';
+      tClic = performance.now();
+      boton.disabled = true;
+      cascada = { t0: tClic, ms: ONDA_MS, filas, ch, banda: ONDA_BANDA };
+      resolver();
+    }
+    boton.addEventListener('click', entrar);
+
+    medir();
+    window.addEventListener('resize', () => { if (raiz.isConnected) medir(); });
+
+    if (sinMovimiento) {
+      // Sin movimiento: figura quieta y un solo clic; la web aparece de golpe
+      fase = 'lista'; listo = true;
+      figura(1, 0.6, 0.55);
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+      for (let f = 0; f < filas; f++) for (let c = 0; c < cols; c++) {
+        const cod = celdas[f * cols + c];
+        if (cod && cod !== 32) ctx.drawImage(sprite(cod), Math.round(c * cw * dpr), Math.round(f * ch * dpr));
+      }
+      ctx.fillStyle = '#fff';
+      ctx.font = `500 ${tam * dpr}px ${FUENTE_MOSAICO}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('CLICA PER ENTRAR', lienzo.width / 2, (filas - 1.5) * ch * dpr);
+      boton.disabled = false;
+      boton.addEventListener('click', () => { raiz.classList.add('fuera'); setTimeout(terminar, 450); resolver(); }, { once: true });
+      return clic;
+    }
+
+    requestAnimationFrame(cuadro);
+    return clic;
+  }
+
+  /* ---------- 3c. Hora en directo del pie (como el reloj de aino.agency) ---------- */
+
+  function iniciarReloj() {
+    const marcas = $$('[data-reloj]');
+    if (!marcas.length) return;
+    const dia = new Intl.DateTimeFormat('ca', { weekday: 'long' });
+    const pon = n => String(n).padStart(2, '0');
+    const pinta = () => {
+      const d = new Date();
+      const nombre = dia.format(d);
+      const texto = `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${pon(d.getHours())}:${pon(d.getMinutes())}:${pon(d.getSeconds())}`;
+      marcas.forEach(m => { m.textContent = texto; });
+    };
+    pinta();
+    setInterval(pinta, 1000);
+  }
+
   /* ---------- 4. Arranque ---------- */
 
   function iniciar() {
@@ -744,8 +1066,14 @@
       }
     }
 
-    textos.filter(el => !el.hasAttribute('data-manual')).forEach(el => observador.observe(el));
-    $$('[data-reveal]').forEach(el => observador.observe(el));
+    // Los textos solo se animan cuando ya se ha entrado en la web (si hay pantalla de entrada)
+    const empezar = () => {
+      textos.filter(el => !el.hasAttribute('data-manual')).forEach(el => observador.observe(el));
+      $$('[data-reveal]').forEach(el => observador.observe(el));
+    };
+    iniciarReloj();
+    const entrada = iniciarEntrada();
+    if (entrada) entrada.then(empezar); else empezar();
 
     /* Filas desplegables */
     $$('.programa__cabecera').forEach(cabecera => {

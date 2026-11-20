@@ -634,3 +634,142 @@ body {
   .js .ref:not(.activa) .ref__texto { transform: none; opacity: 1; }
   .programa__barra { transform: scaleX(1); transition: none; }
 }
+
+/* =========================================================
+   PIE · estructura del pie de aino.agency
+   ========================================================= */
+
+.pie {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(3rem, 8vw, 7rem);
+}
+
+.pie__explora {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--margen);
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--linea);
+  align-items: start;
+}
+.pie__etiqueta,
+.pie__meta {
+  margin: 0;
+  font-size: clamp(.8rem, 1vw, .95rem);
+  font-weight: var(--peso);
+  line-height: 1.15;
+  letter-spacing: var(--t-s);
+}
+.pie__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: .3em;
+  font-size: clamp(1.15rem, 1.7vw, 1.6rem);
+  line-height: 1.08;
+  letter-spacing: var(--t-m);
+}
+.pie a {
+  color: inherit;
+  text-decoration: none;
+}
+.pie__lista a:hover,
+.pie__lista a:focus-visible { font-style: italic; }
+
+.pie__cta p {
+  margin: 0 0 1.4rem;
+  max-width: 13em;
+  font-size: clamp(1.3rem, 2.3vw, 2.2rem);
+  line-height: 1.02;
+  letter-spacing: var(--t-l);
+}
+.pie__boton {
+  display: inline-block;
+  padding: .55em 1.15em;
+  border: 1px solid currentColor;
+  border-radius: var(--radio-boton);
+  font-size: clamp(.85rem, 1.1vw, 1rem);
+  line-height: 1.1;
+  letter-spacing: var(--t-s);
+  transition: background-color .25s var(--ease-out), color .25s var(--ease-out);
+}
+.pie__boton:hover,
+.pie__boton:focus-visible { background: var(--blanco); color: var(--negro); }
+
+/* El nombre ocupa todo el ancho, como el «aino.agency» gigante */
+.pie__marca {
+  margin: 0;
+  font-size: 9.4vw;
+  font-weight: var(--peso);
+  line-height: .8;
+  letter-spacing: -0.09em;
+  white-space: nowrap;
+}
+
+.pie__meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--margen);
+}
+.pie__reloj { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .pie__marca { font-size: 9.1vw; }
+}
+@media (max-width: 900px) {
+  .pie__explora,
+  .pie__meta { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 2rem; }
+  .pie__etiqueta { grid-column: 1 / -1; }
+}
+
+/* =========================================================
+   PANTALLA DE ENTRADA
+   Se queda tapando la web hasta hacer clic. Si el JavaScript no llegara a arrancarla,
+   se esconde sola a los 4 s para no dejar la web bloqueada.
+   ========================================================= */
+
+.entrada { display: none; }
+.js .entrada {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: block;
+  /* sin fondo propio: el negro lo pinta el canvas, para que la web se vea por donde la cascada ya ha pasado */
+  color: var(--blanco);
+  touch-action: none;
+  transition: opacity .45s ease;
+}
+.js .entrada:not([data-activa]) { animation: ocultarEntrada 0s 4s forwards; }
+@keyframes ocultarEntrada { to { visibility: hidden; pointer-events: none; } }
+.entrada.fuera { opacity: 0; pointer-events: none; }
+
+.entrada__lienzo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* El botón cubre toda la pantalla: cualquier clic entra */
+.entrada__boton {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: transparent;
+  cursor: pointer;
+  opacity: 0;
+}
+.entrada__boton:disabled { cursor: progress; }
+.entrada__boton:focus-visible { outline: none; }
+
+/* Mientras está la pantalla de entrada no se puede hacer scroll */
+html.cargando,
+html.cargando body { overflow: hidden; }
