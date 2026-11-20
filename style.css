@@ -35,7 +35,6 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
-  scroll-snap-type: y proximity;   /* cada scroll tiende a parar en una pantalla */
   -webkit-text-size-adjust: 100%;
   background: var(--negro);
 }
@@ -134,7 +133,6 @@ body {
   min-height: 100vh;
   min-height: 100svh;
   padding: calc(var(--margen) + var(--cabecera)) var(--margen) var(--margen);
-  scroll-snap-align: start;
   overflow: clip;
 }
 
@@ -619,8 +617,6 @@ body {
    ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-snap-type: none; }
-
   .cabecera,
   .programa__cuerpo,
   .programa__icono::before,
