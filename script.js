@@ -1022,10 +1022,29 @@
       c.clearRect(0, 0, corW, corH);
       c.setTransform(ESC_COR, 0, 0, ESC_COR, 0.75 * L * ESC_COR, 0.62 * L * ESC_COR);
       c.lineCap = 'round'; c.lineJoin = 'round';
-      c.strokeStyle = '#fff'; c.fillStyle = '#fff';
+      // Cada miembro es un cilindro: se pintan capas cada vez más estrechas y más claras, y el nivel de gris
+      // de cada punto es su altura (1 en el eje, 0 en el borde, con perfil circular). Donde dos miembros se
+      // cruzan manda el más alto ("lighten"), así que las piernas y los brazos se ven redondos y delante unos de otros.
+      c.globalCompositeOperation = 'lighten';
+      const CAPAS = 9;
+      const capa = k => {
+        const g = (k + 0.5) / CAPAS;                                     // altura de esta capa
+        const nivel = Math.round(g * 255);
+        const col = `rgb(${nivel},${nivel},${nivel})`;
+        c.strokeStyle = col; c.fillStyle = col;
+        return Math.sqrt(1 - g * g);                                     // anchura relativa que tiene a esa altura
+      };
       const seg = (x0, y0, x1, y1, w) => {
-        c.lineWidth = w * L;
-        c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+        for (let k = 0; k < CAPAS; k++) {
+          c.lineWidth = w * L * capa(k);
+          c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+        }
+      };
+      const esfera = (x, y, r) => {
+        for (let k = 0; k < CAPAS; k++) {
+          const rel = capa(k);
+          c.beginPath(); c.arc(x, y, r * rel, 0, TAU); c.fill();
+        }
       };
 
       const inclinacionTronco = 0.24;
@@ -1036,7 +1055,7 @@
       const cx = sx + Math.sin(inclinacionTronco * 0.5) * 0.14 * L;      // cabeza
       const cy = sy - Math.cos(inclinacionTronco * 0.5) * 0.14 * L;
       seg(sx, sy, cx, cy, 0.09);
-      c.beginPath(); c.arc(cx + 0.012 * L, cy, 0.098 * L, 0, TAU); c.fill();
+      esfera(cx + 0.012 * L, cy, 0.098 * L);
 
       for (const o of [Math.PI, 0]) {
         const f = fase + o;
@@ -1065,8 +1084,8 @@
     function corredor(fase, visible) {
       dibujarCorredor(fase);
       const datos = cCor.getImageData(0, 0, corW, corH).data;
-      for (let i = 0, n = corW * corH; i < n; i++) alturaA[i] = datos[i * 4 + 3] / 255;
-      const r = Math.max(2, Math.round(corL * ESC_COR * 0.03));
+      for (let i = 0, n = corW * corH; i < n; i++) alturaA[i] = datos[i * 4 + 3] > 20 ? datos[i * 4] / 255 : 0;   // el gris es la altura
+      const r = 2;
       for (let pasada = 0; pasada < 2; pasada++) {
         desenfoque(alturaA, alturaB, corW, corH, r, true);
         desenfoque(alturaB, alturaA, corW, corH, r, false);
@@ -1085,7 +1104,7 @@
           const alto = H[k];
           if (alto < 0.03) continue;
           // Cuanto más cerca del borde, más probable que la casilla siga siendo del código (el borde se funde)
-          const cobertura = lim((alto - 0.03) / 0.25, 0, 1);
+          const cobertura = lim((alto - 0.03) / 0.18, 0, 1);
           const azar = (((c * 73856093) ^ (f * 19349663)) >>> 0) % 1000 / 1000;
           if (azar >= cobertura * visible) continue;
 
@@ -1097,7 +1116,7 @@
           // Cuerpo con caracteres densos que se aclaran en las sombras; dentro de cada nivel, uno u otro según la casilla
           const grupo = v >= 0.62 ? 'NNMN80' : v >= 0.4 ? '98O0N8' : v >= 0.22 ? '?97I8' : '+=I7?';
           celdas[f * cols + c] = grupo.charCodeAt(((c * 7 + f * 13) >>> 0) % grupo.length);
-          brillo[f * cols + c] = Math.round(255 * lim(0.3 + 0.6 * v, 0, 1) * (0.5 + 0.5 * cobertura));   // gris, y más oscuro en los bordes
+          brillo[f * cols + c] = Math.round(255 * lim(0.2 + 0.78 * v, 0, 1) * (0.55 + 0.45 * cobertura));   // gris, y más oscuro en los bordes
         }
       }
     }
