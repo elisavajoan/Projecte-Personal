@@ -881,6 +881,7 @@
       celdas = new Uint16Array(cols * filas);
       prof = new Float32Array(cols * filas);
       sprites.clear();
+      medirCorredor();
     }
 
     function sprite(cod) {
@@ -974,6 +975,113 @@
       }
     }
 
+    // --- El corredor: una silueta de persona corriendo, formada con caracteres dentro del código ---
+    // Se dibuja como un esqueleto con ciclo de carrera (piernas y brazos al revés, rebote al pisar)
+    // en un canvas pequeño, y cada casilla de la rejilla que cae dentro de la silueta se rellena con
+    // caracteres densos. Un hueco alrededor lo separa del código que tiene detrás.
+    const ESC_COR = 0.25;
+    const cvCor = document.createElement('canvas');
+    const cCor = cvCor.getContext('2d', { willReadFrequently: true });
+    let corL = 0, corX = 0, corY = 0, corW = 0, corH = 0;
+    let masc = new Uint8Array(0);
+    const CICLO_CARRERA = 0.8;                         // segundos que dura una zancada completa
+    const LLENO = ['N', 'N', 'N', 'N', 'M', '8', '0'].map(c => c.charCodeAt(0));
+
+    function medirCorredor() {
+      corL = Math.min(filas * ch * 0.62, cols * cw * 0.7);   // altura del corredor en px
+      corX = cols * cw / 2;                                    // posición de la cadera
+      corY = filas * ch * 0.45;
+      corW = Math.ceil(corL * 1.5 * ESC_COR);
+      corH = Math.ceil(corL * 1.25 * ESC_COR);
+      cvCor.width = corW; cvCor.height = corH;
+      masc = new Uint8Array(cols * filas);
+    }
+
+    // Esqueleto en una fase de la zancada (fase en radianes), mirando a la derecha
+    function dibujarCorredor(fase) {
+      const L = corL, c = cCor;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.clearRect(0, 0, corW, corH);
+      c.setTransform(ESC_COR, 0, 0, ESC_COR, 0.75 * L * ESC_COR, 0.62 * L * ESC_COR);
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      c.strokeStyle = '#fff'; c.fillStyle = '#fff';
+      const seg = (x0, y0, x1, y1, w) => {
+        c.lineWidth = w * L;
+        c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+      };
+
+      const inclinacionTronco = 0.32;
+      const hx = 0, hy = 0.016 * L * Math.cos(2 * fase);                 // cadera, con rebote
+      const sx = hx + Math.sin(inclinacionTronco) * 0.30 * L;           // hombro
+      const sy = hy - Math.cos(inclinacionTronco) * 0.30 * L;
+      seg(hx, hy, sx, sy, 0.17);                                        // tronco
+      const cx = sx + Math.sin(inclinacionTronco * 0.5) * 0.14 * L;      // cabeza
+      const cy = sy - Math.cos(inclinacionTronco * 0.5) * 0.14 * L;
+      seg(sx, sy, cx, cy, 0.07);
+      c.beginPath(); c.arc(cx + 0.012 * L, cy, 0.082 * L, 0, TAU); c.fill();
+
+      for (const o of [Math.PI, 0]) {
+        const f = fase + o;
+        // Pierna: el muslo oscila y la rodilla se flexiona mucho al llevar la pierna hacia delante
+        const a = 0.15 + 0.95 * Math.sin(f);
+        const flexion = 0.15 + 1.5 * Math.pow(Math.max(0, Math.cos(f - 0.2)), 1.2);
+        const kx = hx + Math.sin(a) * 0.245 * L, ky = hy + Math.cos(a) * 0.245 * L;
+        const b = a - flexion;
+        const px = kx + Math.sin(b) * 0.245 * L, py = ky + Math.cos(b) * 0.245 * L;
+        seg(hx, hy, kx, ky, 0.135);
+        seg(kx, ky, px, py, 0.1);
+        seg(px, py, px + Math.cos(b) * 0.1 * L, py - Math.sin(b) * 0.1 * L, 0.07);   // pie
+        // Brazo contrario a la pierna, con el codo doblado
+        const g = 0.25 - 0.85 * Math.sin(f);
+        const ex = sx + Math.sin(g) * 0.19 * L, ey = sy + Math.cos(g) * 0.19 * L;
+        const d = g + 1.35 + 0.25 * Math.sin(f);
+        seg(sx, sy, ex, ey, 0.082);
+        seg(ex, ey, ex + Math.sin(d) * 0.18 * L, ey + Math.cos(d) * 0.18 * L, 0.07);
+      }
+    }
+
+    // Pasa la silueta a la rejilla: aparece (crece) con "visible" de 0 a 1
+    function corredor(fase, visible) {
+      dibujarCorredor(fase);
+      const datos = cCor.getImageData(0, 0, corW, corH).data;
+      const x0 = corX - 0.75 * corL, y0 = corY - 0.62 * corL;
+      const c0 = Math.max(0, Math.floor(x0 / cw)), c1 = Math.min(cols - 1, Math.ceil((x0 + corW / ESC_COR) / cw));
+      const f0 = Math.max(0, Math.floor(y0 / ch)), f1 = Math.min(filas - 1, Math.ceil((y0 + corH / ESC_COR) / ch));
+      masc.fill(0);
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          const ix = Math.round(((c + 0.5) * cw - x0) * ESC_COR), iy = Math.round(((f + 0.5) * ch - y0) * ESC_COR);
+          if (ix < 0 || iy < 0 || ix >= corW || iy >= corH) continue;
+          const a = datos[(iy * corW + ix) * 4 + 3];
+          if (a < 110) continue;
+          const azar = (((c * 73856093) ^ (f * 19349663)) >>> 0) % 1000 / 1000;
+          if (azar < visible) masc[f * cols + c] = a > 200 ? 2 : 1;           // 2 = dentro, 1 = borde
+        }
+      }
+      // Hueco alrededor de la silueta (se borra el código de detrás) y relleno con caracteres densos
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          const k = f * cols + c;
+          if (masc[k]) continue;
+          let cerca = false;
+          for (let df = -1; df <= 1 && !cerca; df++) {
+            for (let dc = -2; dc <= 2; dc++) {
+              const ff = f + df, cc = c + dc;
+              if (ff >= 0 && ff < filas && cc >= 0 && cc < cols && masc[ff * cols + cc]) { cerca = true; break; }
+            }
+          }
+          if (cerca) celdas[k] = 0;
+        }
+      }
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          const k = f * cols + c;
+          if (!masc[k]) continue;
+          celdas[k] = masc[k] === 2 ? LLENO[(c * 7 + f * 13 + (fase * 3 | 0)) % LLENO.length] : 57;   // el borde, con «9»
+        }
+      }
+    }
+
     // --- Textos sobre la rejilla ---
     function escribir(texto, fila, col, t, retraso = 0) {
       for (let i = 0; i < texto.length; i++) {
@@ -1027,6 +1135,10 @@
       // La figura empieza como una línea de caracteres y se abre
       const forma = 0.02 + 0.98 * suaveSalida((t - 1000) / 1700);
       figura(forma, giro, inclina);
+
+      // El corredor aparece dentro del código cuando la figura ya se ha abierto
+      const aparece = suaveSalida((t - 2000) / 1300);
+      if (aparece > 0) corredor(t / 1000 * (TAU / CICLO_CARRERA), aparece);
 
       // Caracteres que se alborotan cerca del puntero
       const R = 7;
@@ -1115,6 +1227,7 @@
       // Sin movimiento: figura quieta y un solo clic; la web aparece de golpe
       fase = 'lista'; listo = true;
       figura(1, 0.6, 0.55);
+      corredor(1.1, 1);
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
       for (let f = 0; f < filas; f++) for (let c = 0; c < cols; c++) {
         const cod = celdas[f * cols + c];
