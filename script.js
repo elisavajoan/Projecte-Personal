@@ -127,17 +127,45 @@
   }
 
   // Al pasar el ratón por un texto, las letras cercanas se "descolocan" un momento
+  /* Hover. El estado NO depende de los eventos de entrada y salida del ratón (los navegadores
+     los disparan de más cuando el texto cambia bajo un puntero quieto): mientras el puntero esté
+     sobre un texto, cada fotograma se comprueba dónde está y qué letras tiene debajo. */
+
+  const TEXTO_GRANDE = 40;                  // desde este tamaño (px) el efecto afecta solo a la letra que tienes encima
+  const puntero = { x: -1, y: -1, dentro: false };
+  let versionScroll = 0;                    // sube con cada scroll: las medidas guardadas dejan de valer
+  const evaluadores = new Set();
+  let bucleHover = false;
+
+  window.addEventListener('mousemove', e => {
+    puntero.x = e.clientX; puntero.y = e.clientY; puntero.dentro = true;
+  }, { passive: true, capture: true });
+  window.addEventListener('mouseout', e => { if (!e.relatedTarget) puntero.dentro = false; });   // el puntero sale de la ventana
+  window.addEventListener('blur', () => { puntero.dentro = false; });
+  window.addEventListener('scroll', () => { versionScroll++; }, { passive: true });
+
+  function pasoHover() {
+    for (const evaluar of [...evaluadores]) evaluar();
+    if (evaluadores.size) requestAnimationFrame(pasoHover);
+    else bucleHover = false;
+  }
+  function despertarHover(evaluar) {
+    evaluadores.add(evaluar);
+    if (!bucleHover) { bucleHover = true; requestAnimationFrame(pasoHover); }
+  }
+
   function activarGlitch(el) {
     if (sinMovimiento || !window.matchMedia('(hover: hover)').matches) return;
     let medidas = [];
     let medidoEn = 0;
-    let raton = null;                       // dónde está el puntero mientras esté sobre el texto
-    const retenidas = new Set();            // letras que se mantienen deshechas porque el puntero sigue encima
+    let medidoVersion = -1;
     let grande = false;
+    const retenidas = new Set();            // letras que se mantienen deshechas porque el puntero sigue encima
 
     const medir = () => {
       medidas = $$('.let', el).map(s => ({ s, r: s.getBoundingClientRect() }));
       medidoEn = performance.now();
+      medidoVersion = versionScroll;
       grande = parseFloat(getComputedStyle(el).fontSize) >= TEXTO_GRANDE;
     };
 
@@ -146,21 +174,27 @@
       retenidas.clear();
     };
 
-    // Qué letras están bajo el puntero: en los textos grandes solo la que tiene justo debajo;
-    // en los pequeños, también las vecinas (son tan finas que si no costaría acertar)
+    // Se ejecuta en cada fotograma mientras el puntero esté sobre este texto
     const evaluar = () => {
-      if (!raton) return;
-      if (!medidas.length || performance.now() - medidoEn > 300) medir();
-      const { x, y } = raton;
+      const bajo = puntero.dentro ? document.elementFromPoint(puntero.x, puntero.y) : null;
+      if (!bajo || !el.contains(bajo)) {      // el puntero ya no está sobre el texto
+        soltarTodas();
+        evaluadores.delete(evaluar);
+        return;
+      }
+      if (!medidas.length || medidoVersion !== versionScroll || performance.now() - medidoEn > 300) medir();
+
+      const { x, y } = puntero;
       let encontrada = false;
       for (const { s, r } of medidas) {
         let dentro;
-        if (grande) {
+        if (grande) {                         // texto grande: solo la letra que tienes justo debajo
           dentro = !encontrada && x >= r.left && x < r.right && y >= r.top && y < r.bottom;
           if (dentro) encontrada = true;
-        } else {
+        } else {                              // texto pequeño: también las vecinas (son tan finas que si no costaría acertar)
           dentro = Math.abs(x - (r.left + r.width / 2)) <= r.width * 1.2 && Math.abs(y - (r.top + r.height / 2)) <= r.height;
         }
+        if (retenidas.has(s) && !letraRetenida(el, s)) retenidas.delete(s);   // la animación se acabó o la cambió otra: se vuelve a lanzar si sigue debajo
         if (dentro) {
           if (s._listo && !retenidas.has(s) && glitchMosaico(el, s)) retenidas.add(s);
         } else if (retenidas.has(s)) {
@@ -170,31 +204,10 @@
       }
     };
 
-    el.addEventListener('mousemove', e => {
-      raton = { x: e.clientX, y: e.clientY };
-      evaluar();
-    });
-    el.addEventListener('mouseleave', () => {
-      raton = null;
-      soltarTodas();
-    });
-    // Si se hace scroll con el puntero quieto, debajo aparecen otras letras
-    reevaluadores.add(() => {
-      if (!raton) return;
-      const r = el.getBoundingClientRect();
-      if (raton.x < r.left || raton.x > r.right || raton.y < r.top || raton.y > r.bottom) {
-        raton = null;
-        soltarTodas();
-        return;
-      }
-      medidoEn = 0;
-      evaluar();
-    });
+    // Los eventos solo sirven para "despertar" la comprobación
+    el.addEventListener('mouseenter', () => despertarHover(evaluar));
+    el.addEventListener('mousemove', () => despertarHover(evaluar));
   }
-
-  const TEXTO_GRANDE = 40;                  // desde este tamaño (px) el efecto afecta solo a la letra que tienes encima
-  const reevaluadores = new Set();
-  window.addEventListener('scroll', () => reevaluadores.forEach(f => f()), { passive: true });
 
   // Si la tipografía llega tarde, se vuelven a medir las letras
   function remedirTodo() {
@@ -510,6 +523,13 @@
     l.anim = { modo: 'glitch', inicio: performance.now(), dur: 1000, soltar: null, pFijo: 0 };
     arrancarMosaicos();
     return true;
+  }
+
+  // ¿Sigue la letra deshecha por el puntero (animación de glitch sin soltar)?
+  function letraRetenida(el, span) {
+    const m = el._mosaico;
+    const l = m && m.letras[span._idx];
+    return !!(l && l.anim && l.anim.modo === 'glitch' && l.anim.soltar == null);
   }
 
   // El puntero se va: la letra deja de estar retenida y se recompone
