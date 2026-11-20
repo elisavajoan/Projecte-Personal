@@ -19,9 +19,9 @@
        El texto se ve blanco sobre las pantallas negras y negro sobre las blancas. -->
   <header class="cabecera">
     <nav class="cabecera__menu" aria-label="Fases del proyecto">
-      <button type="button">Investigació</button>
-      <button type="button">Contextualització</button>
-      <button type="button">Conceptualització</button>
+      <button type="button" data-decode data-velocidad="14" data-duracion="700">Investigació</button>
+      <button type="button" data-decode data-velocidad="14" data-duracion="700">Contextualització</button>
+      <button type="button" data-decode data-velocidad="14" data-duracion="700">Conceptualització</button>
     </nav>
   </header>
 
@@ -30,7 +30,7 @@
     <!-- ============ PANTALLA 1 · Portada (igual que el Figma) ============ -->
     <section class="banda banda--oscura portada" id="portada">
       <!-- Título en dos líneas fijas, grande, arriba a la izquierda -->
-      <h1 data-decode data-mosaico data-velocidad="28" data-duracion="1000"><span class="linea">Les Hores</span> <span class="linea">En El Disseny</span></h1>
+      <h1 data-decode data-velocidad="28" data-duracion="1000"><span class="linea">Les Hores</span> <span class="linea">En El Disseny</span></h1>
 
       <!-- Abajo a la izquierda: los cinco referentes. Cada enlace salta a su pantalla (las de después de los datos). -->
       <nav class="referentes" aria-label="Referentes del proyecto">
@@ -48,7 +48,7 @@
 
       <div class="total">
         <!-- El total se calcula solo sumando las horas de los programas (pantalla 4) -->
-        <p class="total__cifra" data-decode data-mosaico data-velocidad="60" data-duracion="1100"><span data-total>6.486,48</span> <span class="total__unidad">h</span></p>
+        <p class="total__cifra" data-decode data-velocidad="60" data-duracion="1100"><span data-total>6.486,48</span> <span class="total__unidad">h</span></p>
         <p class="total__nota" data-decode data-nota-dias>horas en siete programas de diseño. Son 270 días seguidos, de día y de noche.</p>
       </div>
     </section>
@@ -56,7 +56,7 @@
     <!-- ============ PANTALLA 3 · El torbellino ============ -->
     <section class="banda banda--oscura torbellino" id="torbellino">
       <canvas id="lienzo" aria-hidden="true"></canvas>
-      <h2 class="torbellino__titulo" data-decode data-mosaico data-velocidad="10" data-duracion="1000">Estas horas no se ven en el resultado final.</h2>
+      <h2 class="torbellino__titulo" data-decode data-velocidad="10" data-duracion="1000">Estas horas no se ven en el resultado final.</h2>
       <p class="torbellino__leyenda" data-decode>Cada cifra es un programa. Cuantas más horas, más grande y más frecuente.</p>
     </section>
 
@@ -66,7 +66,7 @@
       El torbellino, las barras y el total se actualizan solos a partir de data-horas.
     -->
     <section class="banda banda--clara datos" id="datos">
-      <h2 class="datos__titulo" data-decode data-mosaico data-velocidad="14" data-duracion="1000">Horas acumuladas en cada programa</h2>
+      <h2 class="datos__titulo" data-decode data-velocidad="14" data-duracion="1000">Horas acumuladas en cada programa</h2>
 
       <ul class="programas">
 
