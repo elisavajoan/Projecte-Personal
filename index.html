@@ -15,41 +15,31 @@
 <body>
 
   <!-- ============ Cabecera · tres botones arriba a la derecha ============
-       De momento no hacen nada: solo cambian de Helvetica Bold a Bold Oblique al pasar el ratón.
+       De momento no hacen nada: solo cambian a oblicua al pasar el ratón.
        El texto se ve blanco sobre las pantallas negras y negro sobre las blancas. -->
   <header class="cabecera">
     <nav class="cabecera__menu" aria-label="Fases del proyecto">
-      <button type="button">investigación</button>
-      <button type="button">conceptualización</button>
-      <button type="button">contextualización</button>
+      <button type="button">Investigació</button>
+      <button type="button">Contextualització</button>
+      <button type="button">Conceptualització</button>
     </nav>
   </header>
 
   <main>
 
-    <!-- ============ PANTALLA 1 · Portada ============ -->
+    <!-- ============ PANTALLA 1 · Portada (igual que el Figma) ============ -->
     <section class="banda banda--oscura portada" id="portada">
-      <!-- Arriba: el título y, justo debajo, el botón con la pregunta -->
-      <div class="portada__cabeza">
-        <h1 data-decode data-velocidad="8" data-duracion="900">Les Hores En El Disseny</h1>
-        <div class="pregunta">
-          <button id="boton" type="button" aria-expanded="false" aria-controls="texto" data-decode>Ver mi pregunta</button>
-          <p id="texto" data-decode data-manual data-velocidad="2" data-duracion="500">Quant de temps dediquen els dissenyadors a aprendre/dominar els programes de disseny?</p>
-        </div>
-      </div>
+      <!-- Título en dos líneas fijas, grande, arriba a la izquierda -->
+      <h1 data-decode data-velocidad="8" data-duracion="900"><span class="linea">Les Hores</span> <span class="linea">En El Disseny</span></h1>
 
-      <!-- Abajo: los referentes en una sola fila, pegados al margen izquierdo, y la pista a la derecha.
-           Cada enlace salta a su pantalla (las de después de los datos). -->
-      <div class="portada__pie">
-        <nav class="referentes" aria-label="Referentes del proyecto">
-          <a href="#ref-mesh3d" data-decode data-velocidad="8" data-duracion="500">mesh 3d</a>
-          <a href="#ref-stateofaidesign" data-decode data-velocidad="8" data-duracion="500">AI in design</a>
-          <a href="#ref-aino" data-decode data-velocidad="8" data-duracion="500">aino.agency</a>
-          <a href="#ref-pinnacl" data-decode data-velocidad="8" data-duracion="500">pinnacl</a>
-          <a href="#ref-mirage" data-decode data-velocidad="8" data-duracion="500">mirage</a>
-        </nav>
-        <p class="pista" data-decode>Baja para ver las horas</p>
-      </div>
+      <!-- Abajo a la izquierda: los cinco referentes. Cada enlace salta a su pantalla (las de después de los datos). -->
+      <nav class="referentes" aria-label="Referentes del proyecto">
+        <a href="#ref-mesh3d" data-decode data-velocidad="8" data-duracion="500">mesh 3d</a>
+        <a href="#ref-stateofaidesign" data-decode data-velocidad="8" data-duracion="500">AI in design</a>
+        <a href="#ref-aino" data-decode data-velocidad="8" data-duracion="500">aino.agency</a>
+        <a href="#ref-pinnacl" data-decode data-velocidad="8" data-duracion="500">pinnacl</a>
+        <a href="#ref-mirage" data-decode data-velocidad="8" data-duracion="500">mirage</a>
+      </nav>
     </section>
 
     <!-- ============ PANTALLA 2 · Lo que no se ve ============ -->

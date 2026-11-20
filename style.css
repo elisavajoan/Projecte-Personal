@@ -67,16 +67,17 @@ body {
   border: 0;
 }
 
-/* ---------- Cabecera: tres botones arriba a la derecha, fija ---------- */
+/* ---------- Cabecera: tres botones arriba a la derecha, fija ----------
+   Medidas del Figma (marco de 1710 px): 1vw = 17,1 px. */
 
 .cabecera {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 10;
-  height: var(--cabecera);
+  height: max(var(--cabecera), calc(2.865vw + 3.5rem));
   padding: 0 var(--margen);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
   color: var(--blanco);
   mix-blend-mode: difference;         /* blanco sobre las pantallas negras, negro sobre las blancas */
@@ -89,25 +90,42 @@ body {
 .cabecera__menu {
   display: flex;
   gap: clamp(1rem, 2.5vw, 2.25rem);
+  padding-top: 1.5rem;
   pointer-events: auto;
 }
 .cabecera__menu button {
   appearance: none;
   margin: 0;
-  padding: .5rem 0;
+  padding: 0;
   font: inherit;
-  font-size: 1rem;
+  font-size: clamp(.62rem, 3.2vw, .95rem);
+  font-weight: 300;                   /* Helvetica Light, como en el Figma */
   font-style: normal;
-  letter-spacing: 0;                  /* sin tracking en estos botones */
+  line-height: 1.15;
+  letter-spacing: -0.11em;
   white-space: nowrap;
   color: inherit;
   background: none;
   border: 0;
   cursor: pointer;
 }
-/* Al pasar el ratón: de Helvetica Bold a Helvetica Bold Oblique (mismo ancho, no se mueve nada) */
+/* Al pasar el ratón: pasa a oblicua (mismo ancho, no se mueve nada) */
 .cabecera__menu button:hover,
 .cabecera__menu button:focus-visible { font-style: italic; }
+
+/* Pantalla ancha: cada botón en su sitio exacto del Figma */
+@media (min-width: 1000px) {
+  .cabecera { padding: 0; }
+  .cabecera__menu { position: absolute; inset: 0; padding: 0; }
+  .cabecera__menu button {
+    position: absolute;
+    top: 2.865vw;                     /* 49 px: las letras quedan a 52 px, como en el Figma */
+    font-size: max(.75rem, 1.27vw);   /* 21,7 px */
+  }
+  .cabecera__menu button:nth-child(1) { left: 73.27vw; }   /* 1253 px */
+  .cabecera__menu button:nth-child(2) { left: 79.98vw; }   /* 1367,7 px */
+  .cabecera__menu button:nth-child(3) { left: 88.55vw; }   /* 1514,3 px */
+}
 
 /* ---------- Bandas (cada pantalla) ---------- */
 
@@ -162,12 +180,9 @@ body {
   font-kerning: none;
 }
 
-/* La pregunta de la portada aparece y desaparece con el botón */
-.js #texto { transition: opacity .3s ease; }
-.js #texto:not(.in) { opacity: 0; }
-
 /* =========================================================
-   PANTALLA 1 · Portada
+   PANTALLA 1 · Portada (igual que el Figma, marco de 1710 × 950)
+   Todas las medidas salen de ese marco y se escalan con el ancho: 1vw = 17,1 px.
    ========================================================= */
 
 .portada {
@@ -175,74 +190,30 @@ body {
   flex-direction: column;
   justify-content: space-between;
   gap: 3rem;
+  padding: 7.78vw 0 2.79vw 1.345vw;   /* 133 px arriba · 48 px abajo · 23 px a la izquierda */
 }
 
 .portada h1 {
   margin: 0;
-  font-size: clamp(3.4rem, min(15vw, 19vh), 16rem);   /* se ajusta también al alto para que quepa el botón */
-  line-height: .9;
-  letter-spacing: var(--t-xl);
+  font-size: 13.094vw;                /* 223,9 px */
+  line-height: .796;
+  letter-spacing: -0.11em;
 }
+.portada .linea { display: block; white-space: nowrap; }
 
-/* Arriba: el título y, pegado debajo, el botón de la pregunta */
-.portada__cabeza {
-  display: grid;
-  align-content: start;
-  gap: clamp(1.5rem, 3.5vh, 2.5rem);
-}
-
-/* Abajo: los referentes (izquierda, en una sola fila) y la pista (derecha) */
-.portada__pie {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 1.5rem 2rem;
-}
-
-.pregunta {
-  display: grid;
-  gap: 1.25rem;
-  max-width: 36rem;
-}
-
-#boton {
-  appearance: none;
-  width: 12rem;                       /* cabe también «Ocultar mi pregunta» */
-  white-space: nowrap;
-  height: 2.75rem;
-  padding: 0 1.25rem;
-  font: inherit;
-  font-size: 1rem;
-  letter-spacing: var(--t-m);
-  color: var(--negro);
-  background: var(--blanco);
-  border: 1px solid var(--blanco);
-  border-radius: var(--radio-boton);
-  cursor: pointer;
-  transition: background-color .3s ease, color .3s ease;
-}
-#boton:hover { background: var(--negro); color: var(--blanco); }
-
-#texto {
-  margin: 0;
-  font-size: clamp(1.25rem, 2.2vw, 2rem);
-  line-height: 1.15;
-  letter-spacing: var(--t-l);
-}
-
-/* Enlaces a los referentes: todos en una fila, desde el margen izquierdo (el mismo que el botón) */
+/* Enlaces a los referentes: abajo a la izquierda, en Bold Oblique */
 .referentes {
   display: flex;
   flex-wrap: nowrap;
-  justify-content: flex-start;
   gap: 1.75rem;
+  padding-left: 1.345vw;
+  font-size: clamp(.8rem, 1.5vw, 1rem);
 }
-.referentes a { white-space: nowrap; }
 .referentes a {
-  font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  white-space: nowrap;
   font-style: italic;
-  letter-spacing: var(--t-m);
+  letter-spacing: -0.06em;
+  line-height: 1.15;
   color: inherit;
   text-decoration: none;
   /* La raya va como borde (el subrayado normal no pasa por las letras sueltas del efecto) */
@@ -253,20 +224,21 @@ body {
 .referentes a:hover,
 .referentes a:focus-visible { border-bottom-color: currentColor; }
 
-.pista {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  margin: 0 0 0 auto;               /* siempre a la derecha */
-  font-size: .95rem;
-  letter-spacing: var(--t-s);
-  color: var(--gris);
-}
-.pista::before {
-  content: "";
-  width: 3rem;
-  height: 1px;
-  background: currentColor;
+/* Pantalla ancha: cada enlace en su sitio exacto del Figma */
+@media (min-width: 1000px) {
+  .referentes {
+    position: relative;
+    display: block;
+    height: 1.15em;
+    padding-left: 0;
+    font-size: max(.8rem, .936vw);    /* 16 px */
+  }
+  .referentes a { position: absolute; top: 0; }
+  .referentes a:nth-child(1) { left: 1.345vw; }   /* 46 px, contando los 23 px de margen del título */
+  .referentes a:nth-child(2) { left: 6.845vw; }   /* 140 px */
+  .referentes a:nth-child(3) { left: 14.035vw; }  /* 263 px */
+  .referentes a:nth-child(4) { left: 21.755vw; }  /* 395 px */
+  .referentes a:nth-child(5) { left: 27.195vw; }  /* 488 px */
 }
 
 /* =========================================================
@@ -618,14 +590,13 @@ body {
   :root { --cabecera: 4.25rem; }
 
   /* Los tres botones de la cabecera caben en una fila */
-  .cabecera__menu { gap: .9rem; }
-  .cabecera__menu button { font-size: clamp(.6rem, 2.9vw, .95rem); }
+  .cabecera__menu { gap: .9rem; padding-top: 1.25rem; }
 
-  /* Los cinco referentes también, repartidos de lado a lado del margen */
-  .portada__pie { flex-direction: column; align-items: stretch; }
-  .referentes { justify-content: space-between; gap: .5rem; }
+  /* Portada: el título más grande para llenar el ancho, y los cinco referentes repartidos de lado a lado */
+  .portada { padding: calc(var(--cabecera) + 1.5rem) var(--margen) var(--margen); }
+  .portada h1 { font-size: 17vw; }
+  .referentes { padding-left: 0; justify-content: space-between; gap: .5rem; }
   .referentes a { font-size: clamp(.68rem, 3.3vw, 1rem); }
-  .pista { margin-left: 0; }
 
   .programa__cabecera {
     grid-template-columns: auto 1fr 1.75rem;

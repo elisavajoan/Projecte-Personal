@@ -6,7 +6,7 @@
       hasta convertirse en la letra real (la técnica de aino.agency)
    3. Torbellino de horas (canvas)
    4. Arranque: totales, aparición al entrar en pantalla,
-      filas desplegables y botón de la pregunta
+      filas desplegables
    ========================================================= */
 
 (() => {
@@ -430,19 +430,6 @@
           $$('dt, dd', fila).forEach((el, i) => decodificar(el, i * 90));
         }
       });
-    });
-
-    /* Botón de la pregunta */
-    const boton = $('#boton');
-    const texto = $('#texto');
-    texto.setAttribute('aria-hidden', 'true');
-    boton.addEventListener('click', () => {
-      const mostrar = !texto.classList.contains('in');
-      texto.classList.toggle('in', mostrar);
-      texto.setAttribute('aria-hidden', String(!mostrar));
-      boton.setAttribute('aria-expanded', String(mostrar));
-      escribir(boton, mostrar ? 'Ocultar mi pregunta' : 'Ver mi pregunta');
-      if (mostrar && !sinMovimiento) decodificar(texto);
     });
 
     /* Referentes: la captura y el texto entran por los lados al llegar a la pantalla */
