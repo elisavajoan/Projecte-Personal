@@ -14,39 +14,41 @@
 </head>
 <body>
 
-  <!-- ============ Cabecera · logo centrado ============
-       Logo con las letras rellenas de blanco y el contorno en negro, sobre fondo transparente:
-       sobre las pantallas negras se ven las letras blancas y sobre las blancas se ve el contorno.
-       Hay tres tamaños (1x, 2x, 3x) para que salga nítido en cualquier pantalla;
-       logo.png es el original en grande. -->
+  <!-- ============ Cabecera · tres botones arriba a la derecha ============
+       De momento no hacen nada: solo cambian de Helvetica Bold a Bold Oblique al pasar el ratón.
+       El texto se ve blanco sobre las pantallas negras y negro sobre las blancas. -->
   <header class="cabecera">
-    <a class="logo" href="#portada" aria-label="gràcies · ir al inicio">
-      <img src="logo-2x.png" srcset="logo-1x.png 1x, logo-2x.png 2x, logo-3x.png 3x" alt="gràcies" width="144" height="56">
-    </a>
+    <nav class="cabecera__menu" aria-label="Fases del proyecto">
+      <button type="button">investigación</button>
+      <button type="button">conceptualización</button>
+      <button type="button">contextualización</button>
+    </nav>
   </header>
 
   <main>
 
     <!-- ============ PANTALLA 1 · Portada ============ -->
     <section class="banda banda--oscura portada" id="portada">
-      <h1 data-decode data-velocidad="8" data-duracion="900">Les Hores En El Disseny</h1>
-
-      <div class="portada__pie">
+      <!-- Arriba: el título y, justo debajo, el botón con la pregunta -->
+      <div class="portada__cabeza">
+        <h1 data-decode data-velocidad="8" data-duracion="900">Les Hores En El Disseny</h1>
         <div class="pregunta">
           <button id="boton" type="button" aria-expanded="false" aria-controls="texto" data-decode>Ver mi pregunta</button>
           <p id="texto" data-decode data-manual data-velocidad="2" data-duracion="500">Quant de temps dediquen els dissenyadors a aprendre/dominar els programes de disseny?</p>
         </div>
-        <div class="portada__lateral">
-          <!-- Salto directo a cada referente (las pantallas de después de los datos) -->
-          <nav class="referentes" aria-label="Referentes del proyecto">
-            <a href="#ref-mesh3d" data-decode data-velocidad="8" data-duracion="500">mesh 3d</a>
-            <a href="#ref-stateofaidesign" data-decode data-velocidad="8" data-duracion="500">AI in design</a>
-            <a href="#ref-aino" data-decode data-velocidad="8" data-duracion="500">aino.agency</a>
-            <a href="#ref-pinnacl" data-decode data-velocidad="8" data-duracion="500">pinnacl</a>
-            <a href="#ref-mirage" data-decode data-velocidad="8" data-duracion="500">mirage</a>
-          </nav>
-          <p class="pista" data-decode>Baja para ver las horas</p>
-        </div>
+      </div>
+
+      <!-- Abajo: los referentes en una sola fila, pegados al margen izquierdo, y la pista a la derecha.
+           Cada enlace salta a su pantalla (las de después de los datos). -->
+      <div class="portada__pie">
+        <nav class="referentes" aria-label="Referentes del proyecto">
+          <a href="#ref-mesh3d" data-decode data-velocidad="8" data-duracion="500">mesh 3d</a>
+          <a href="#ref-stateofaidesign" data-decode data-velocidad="8" data-duracion="500">AI in design</a>
+          <a href="#ref-aino" data-decode data-velocidad="8" data-duracion="500">aino.agency</a>
+          <a href="#ref-pinnacl" data-decode data-velocidad="8" data-duracion="500">pinnacl</a>
+          <a href="#ref-mirage" data-decode data-velocidad="8" data-duracion="500">mirage</a>
+        </nav>
+        <p class="pista" data-decode>Baja para ver las horas</p>
       </div>
     </section>
 

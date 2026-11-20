@@ -15,7 +15,7 @@
   --ease-in-out: cubic-bezier(.77, 0, .18, 1);
 
   --margen: clamp(1.25rem, 4vw, 4rem);
-  --cabecera: 5rem;                  /* alto de la cabecera con el logo */
+  --cabecera: 5rem;                  /* alto de la cabecera con los tres botones */
   --radio-boton: 1.5rem;              /* cantos redondeados del botón */
 
   /* Helvetica Bold en toda la web. El efecto condensado sale del tracking
@@ -67,31 +67,47 @@ body {
   border: 0;
 }
 
-/* ---------- Cabecera: logo centrado, fija ---------- */
+/* ---------- Cabecera: tres botones arriba a la derecha, fija ---------- */
 
 .cabecera {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 10;
   height: var(--cabecera);
+  padding: 0 var(--margen);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  color: var(--blanco);
+  mix-blend-mode: difference;         /* blanco sobre las pantallas negras, negro sobre las blancas */
   pointer-events: none;
   transition: transform .45s var(--ease-in-out);
 }
 /* Se esconde al bajar para no tapar los textos, y vuelve al subir */
 .cabecera.oculta { transform: translateY(-100%); }
-.logo {
-  display: block;
-  line-height: 0;
+
+.cabecera__menu {
+  display: flex;
+  gap: clamp(1rem, 2.5vw, 2.25rem);
   pointer-events: auto;
 }
-.logo img {
-  display: block;
-  height: 3.5rem;
-  width: auto;                        /* el logo ya trae sus colores: letras blancas con contorno negro */
+.cabecera__menu button {
+  appearance: none;
+  margin: 0;
+  padding: .5rem 0;
+  font: inherit;
+  font-size: 1rem;
+  font-style: normal;
+  letter-spacing: 0;                  /* sin tracking en estos botones */
+  white-space: nowrap;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
+/* Al pasar el ratón: de Helvetica Bold a Helvetica Bold Oblique (mismo ancho, no se mueve nada) */
+.cabecera__menu button:hover,
+.cabecera__menu button:focus-visible { font-style: italic; }
 
 /* ---------- Bandas (cada pantalla) ---------- */
 
@@ -168,28 +184,36 @@ body {
   letter-spacing: var(--t-xl);
 }
 
+/* Arriba: el título y, pegado debajo, el botón de la pregunta */
+.portada__cabeza {
+  display: grid;
+  align-content: start;
+  gap: clamp(1.5rem, 3.5vh, 2.5rem);
+}
+
+/* Abajo: los referentes (izquierda, en una sola fila) y la pista (derecha) */
 .portada__pie {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 2rem;
+  gap: 1.5rem 2rem;
 }
 
 .pregunta {
   display: grid;
-  gap: 1.5rem;
+  gap: 1.25rem;
   max-width: 36rem;
 }
 
 #boton {
   appearance: none;
-  width: max(15.5rem, 20vw);          /* cabe también «Ocultar mi pregunta» */
+  width: 12rem;                       /* cabe también «Ocultar mi pregunta» */
   white-space: nowrap;
-  height: clamp(3.5rem, 10vh, 5.5rem);
-  padding: 0 1.5rem;
+  height: 2.75rem;
+  padding: 0 1.25rem;
   font: inherit;
-  font-size: 1.35rem;
+  font-size: 1rem;
   letter-spacing: var(--t-m);
   color: var(--negro);
   background: var(--blanco);
@@ -207,21 +231,14 @@ body {
   letter-spacing: var(--t-l);
 }
 
-/* Columna derecha de la portada: enlaces a los referentes + la pista */
-.portada__lateral {
-  display: grid;
-  justify-items: end;
-  gap: 1.5rem;
-  margin-left: auto;
-}
-
+/* Enlaces a los referentes: todos en una fila, desde el margen izquierdo (el mismo que el botón) */
 .referentes {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: .35rem 1.75rem;
-  max-width: 34rem;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 1.75rem;
 }
+.referentes a { white-space: nowrap; }
 .referentes a {
   font-size: clamp(1.05rem, 1.5vw, 1.4rem);
   font-style: italic;
@@ -240,7 +257,7 @@ body {
   display: flex;
   align-items: center;
   gap: .75rem;
-  margin: 0;
+  margin: 0 0 0 auto;               /* siempre a la derecha */
   font-size: .95rem;
   letter-spacing: var(--t-s);
   color: var(--gris);
@@ -599,12 +616,16 @@ body {
 
 @media (max-width: 720px) {
   :root { --cabecera: 4.25rem; }
-  .logo img { height: 2.75rem; }
 
-  .portada__pie { flex-direction: column; align-items: flex-start; }
-  .portada__lateral { margin-left: 0; justify-items: start; }
-  .referentes { justify-content: flex-start; }
-  #boton { width: 100%; }
+  /* Los tres botones de la cabecera caben en una fila */
+  .cabecera__menu { gap: .9rem; }
+  .cabecera__menu button { font-size: clamp(.6rem, 2.9vw, .95rem); }
+
+  /* Los cinco referentes también, repartidos de lado a lado del margen */
+  .portada__pie { flex-direction: column; align-items: stretch; }
+  .referentes { justify-content: space-between; gap: .5rem; }
+  .referentes a { font-size: clamp(.68rem, 3.3vw, 1rem); }
+  .pista { margin-left: 0; }
 
   .programa__cabecera {
     grid-template-columns: auto 1fr 1.75rem;
