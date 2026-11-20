@@ -641,20 +641,62 @@
       return lista;
     }
 
+    // --- El huracán de código: miles de caracteres que suben girando por un embudo doble ---
+    // Ancho arriba, fino en el centro y otra vez ancho abajo (un hiperboloide, como un huracán visto de lado).
+    const BRAZOS = 5;                                  // las corrientes en espiral que se ven en el huracán
+    const GIRO_ESPIRAL = 2.4;                          // cuánto se retuerce de un extremo al otro (radianes por unidad de altura)
+    const SIMBOLOS = '0123456789' + '0123456789' + '{}[]()<>;:=+-*/\\|&%$#@!?_~^' + 'abcdefnxuvtrsi';
+    const CELDA = 40;                                  // tamaño de cada carácter en el atlas
+
+    // Todos los caracteres se dibujan una vez en una tira y después solo se copian a su tamaño
+    const atlas = document.createElement('canvas');
+    atlas.width = CELDA * SIMBOLOS.length;
+    atlas.height = CELDA;
+    {
+      const c = atlas.getContext('2d');
+      c.fillStyle = '#fff';
+      c.font = `500 ${CELDA * 0.8}px ${FUENTE_MOSAICO}`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      for (let i = 0; i < SIMBOLOS.length; i++) c.fillText(SIMBOLOS[i], CELDA * i + CELDA / 2, CELDA / 2 + CELDA * 0.04);
+    }
+
+    function crearCodigo(total) {
+      const lista = [];
+      for (let i = 0; i < total; i++) {
+        const interior = Math.random() < 0.16;          // algunos caracteres van por dentro y dan volumen
+        lista.push({
+          v0: Math.random(),
+          vel: 1 / (11 + Math.random() * 7),            // altura que sube por segundo
+          brazo: (i % BRAZOS) * TAU / BRAZOS + (Math.random() + Math.random() - 1) * 0.3,
+          radio: interior ? 0.3 + Math.random() * 0.5 : 0.93 + Math.random() * 0.15,
+          interior,
+          brillo: 0.5 + Math.random() * 0.5,
+          tam: 0.8 + Math.random() * 0.45,
+          ritmo: 0.4 + Math.random() * 1.6,             // veces por segundo que cambia de carácter
+          semilla: Math.floor(Math.random() * 65536),
+        });
+      }
+      return lista;
+    }
+
     let particulas = [];
+    let codigo = [];
     let totalActual = 0;
     let W = 0, H = 0;
     let tiempo = 3, reloj = 0, impulso = 0;
     let corriendo = false, previo = 0;
+    let mediaCuadro = 16, cuadros = 0;      // si el equipo va justo, se reduce poco a poco el número de caracteres
 
     function ajustar() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = banda.clientWidth;
       H = banda.clientHeight;
-      const total = W > 900 ? 24 : 15;
+      const total = W > 900 ? 18 : 12;
       if (total !== totalActual) {
         totalActual = total;
         particulas = crearParticulas(total);
+        codigo = crearCodigo(W > 900 ? 4200 : 2300);
       }
       lienzo.width = Math.round(W * dpr);
       lienzo.height = Math.round(H * dpr);
@@ -665,56 +707,85 @@
     function dibujar() {
       ctx.clearRect(0, 0, W, H);
       const ancha = W > 900;
-      const cx = W * (ancha ? 0.68 : 0.5);
-      const yAbajo = H * 0.9, yArriba = H * 0.1;
-      const rMax = Math.min(W * (ancha ? 0.29 : 0.46), H * 0.5);
-      const rMin = rMax * 0.16;
-      const inclinacion = 0.24;
-      const escala = Math.max(0.55, Math.min(1, W / 900));     // cifras más pequeñas en móvil
+      const cx = W * (ancha ? 0.7 : 0.5);
+      const yAbajo = H * 0.92, yArriba = H * 0.08;
+      const rMax = Math.min(W * (ancha ? 0.28 : 0.46), H * 0.5);
+      const rMin = rMax * 0.17;
+      const inclinacion = 0.22;
+      const escala = Math.max(0.6, Math.min(1, W / 900));     // todo más pequeño en móvil
 
-      // Anillos tenues que dibujan el embudo
-      ctx.strokeStyle = 'rgba(255,255,255,.09)';
-      ctx.lineWidth = 1;
-      for (let k = 0; k <= 9; k++) {
-        const v = k / 9;
-        const r = lerp(rMin, rMax, Math.pow(v, 1.3));
-        ctx.beginPath();
-        ctx.ellipse(cx, lerp(yAbajo, yArriba, v), r, r * inclinacion, 0, 0, TAU);
-        ctx.stroke();
+      // Forma del huracán: u = 0 abajo, 1 arriba
+      const radioEn = u => {
+        const x = 2 * u - 1;
+        return Math.sqrt(rMin * rMin + (rMax * rMax - rMin * rMin) * x * x);
+      };
+      const balanceo = u => Math.sin(reloj * 0.3 + (2 * u - 1) * 1.8) * rMax * 0.06;   // el eje se mece un poco
+      const giroBase = reloj * 0.55;
+
+      // --- Código ---
+      ctx.imageSmoothingQuality = 'high';
+      const celdaBase = 14.5 * 1.25 * escala * (ancha ? 1 : 1.35);      // en móvil el código va algo más grande para que se lea
+      for (const c of codigo) {
+        const u = (c.v0 + tiempo * c.vel) % 1;
+        const bordes = suave(0, 0.12, u) * (1 - suave(0.88, 1, u));     // los extremos se deshacen
+        if (bordes < 0.01) continue;
+        const x = 2 * u - 1;
+        const R = radioEn(u) * c.radio;
+        const ang = c.brazo + GIRO_ESPIRAL * x + giroBase;
+        const prof = Math.sin(ang);                                     // -1 detrás, 1 delante
+        const delante = (prof + 1) / 2;
+        const alfa = c.brillo * (0.12 + 0.88 * delante) * bordes * (c.interior ? 0.55 : 1);
+        if (alfa < 0.02) continue;
+        const px = cx + balanceo(u) + Math.cos(ang) * R;
+        const py = lerp(yAbajo, yArriba, u) + prof * R * inclinacion;
+        const lado = celdaBase * c.tam * (0.55 + 0.45 * (R / rMax)) * (0.8 + 0.35 * delante);
+        const k = Math.floor(tiempo * c.ritmo);
+        const g = ((c.semilla + k * 2654435761) >>> 0) % SIMBOLOS.length;   // el carácter cambia solo, como código en movimiento
+        ctx.globalAlpha = alfa;
+        ctx.drawImage(atlas, g * CELDA, 0, CELDA, CELDA, px - lado / 2, py - lado / 2, lado, lado);
       }
+      ctx.globalAlpha = 1;
 
-      // Posición de cada cifra: sube girando y se ensancha
+      // --- Datos por encima del código: cada cifra sube girando por el mismo huracán ---
       const items = particulas.map(p => {
-        const u = (tiempo / p.periodo + p.fase) % 1;           // 0 abajo, 1 arriba
-        const r = lerp(rMin, rMax, Math.pow(u, 1.3));
-        const ang = p.angulo0 + reloj * p.giro;
-        const prof = Math.sin(ang);                            // -1 detrás, 1 delante
+        const u = (tiempo / p.periodo + p.fase) % 1;
+        const R = radioEn(u);
+        const ang = p.angulo0 + reloj * p.giro + GIRO_ESPIRAL * (2 * u - 1);
+        const prof = Math.sin(ang);
         return {
-          p, u, r, prof,
-          x: cx + Math.cos(ang) * r,
-          y: lerp(yAbajo, yArriba, u) + prof * r * inclinacion,
+          p, u, R, prof,
+          x: cx + balanceo(u) + Math.cos(ang) * R,
+          y: lerp(yAbajo, yArriba, u) + prof * R * inclinacion,
         };
       }).sort((a, b) => a.prof - b.prof);                      // primero las de atrás
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
 
-      for (const { p, u, r, prof, x, y } of items) {
+      for (const { p, u, R, prof, x, y } of items) {
         const delante = (prof + 1) / 2;
         // Aparece al nacer, desaparece al llegar arriba; las de atrás se ven menos
-        const alfa = suave(0, 0.3, u) * (1 - suave(0.78, 1, u)) * (0.25 + 0.75 * delante);
+        const alfa = suave(0, 0.25, u) * (1 - suave(0.8, 1, u)) * (0.3 + 0.7 * delante);
         if (alfa < 0.01) continue;
 
-        const tam = lerp(14, 58, p.peso) * escala * (0.4 + 0.6 * (r / rMax)) * (0.85 + 0.15 * delante);
+        const tam = lerp(14, 54, p.peso) * escala * (0.5 + 0.5 * (R / rMax)) * (0.85 + 0.15 * delante);
+        const tamNombre = Math.max(10, tam * 0.26);
+
+        // Un borde negro separa las cifras del código que tienen detrás
+        ctx.strokeStyle = `rgba(0,0,0,${(alfa * 0.9).toFixed(3)})`;
         ctx.fillStyle = `rgba(255,255,255,${alfa.toFixed(3)})`;
 
         ctx.font = `700 ${tam.toFixed(1)}px ${fuente}`;
         if (admiteTracking) ctx.letterSpacing = `${(-tam * 0.04).toFixed(2)}px`;
+        ctx.lineWidth = tam * 0.18;
+        ctx.strokeText(p.texto, x, y);
         ctx.fillText(p.texto, x, y);
 
-        const tamNombre = Math.max(10, tam * 0.26);
         ctx.font = `700 ${tamNombre.toFixed(1)}px ${fuente}`;
         if (admiteTracking) ctx.letterSpacing = `${(-tamNombre * 0.025).toFixed(2)}px`;
+        ctx.lineWidth = tamNombre * 0.28;
+        ctx.strokeText(p.nombre, x, y + tam * 0.62);
         ctx.fillText(p.nombre, x, y + tam * 0.62);
       }
     }
@@ -722,6 +793,8 @@
     function bucle(ahora) {
       if (!corriendo) return;
       const dt = Math.min(0.05, (ahora - previo) / 1000);
+      mediaCuadro = lerp(mediaCuadro, Math.min(ahora - previo, 100), 0.06);
+      if (++cuadros % 45 === 0 && mediaCuadro > 30 && codigo.length > 1400) codigo.length = Math.floor(codigo.length * 0.8);
       previo = ahora;
       impulso *= Math.exp(-dt * 1.6);
       tiempo += dt * (1 + impulso * 0.6);
