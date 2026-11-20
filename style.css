@@ -81,10 +81,7 @@ body {
   color: var(--blanco);
   mix-blend-mode: difference;         /* blanco sobre las pantallas negras, negro sobre las blancas */
   pointer-events: none;
-  transition: transform .45s var(--ease-in-out);
 }
-/* Se esconde al bajar para no tapar los textos, y vuelve al subir */
-.cabecera.oculta { transform: translateY(-100%); }
 
 .cabecera__menu {
   display: flex;
@@ -617,7 +614,6 @@ body {
    ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .cabecera,
   .programa__cuerpo,
   .programa__icono::before,
   .programa__icono::after,

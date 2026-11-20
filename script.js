@@ -1154,19 +1154,6 @@
       referentes.forEach(r => observadorRef.observe(r));
     }
 
-    /* Cabecera: se esconde al bajar y reaparece al subir */
-    const cabecera = $('.cabecera');
-    if (cabecera) {
-      let previo = window.scrollY;
-      window.addEventListener('scroll', () => {
-        const y = window.scrollY;
-        const cambio = y - previo;
-        if (Math.abs(cambio) < 6) return;        // ignora los temblores pequeños
-        cabecera.classList.toggle('oculta', cambio > 0 && y > 120);
-        previo = y;
-      }, { passive: true });
-    }
-
     iniciarTorbellino();
   }
 
