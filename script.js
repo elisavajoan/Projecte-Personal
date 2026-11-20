@@ -131,23 +131,70 @@
     if (sinMovimiento || !window.matchMedia('(hover: hover)').matches) return;
     let medidas = [];
     let medidoEn = 0;
+    let raton = null;                       // dónde está el puntero mientras esté sobre el texto
+    const retenidas = new Set();            // letras que se mantienen deshechas porque el puntero sigue encima
+    let grande = false;
+
     const medir = () => {
       medidas = $$('.let', el).map(s => ({ s, r: s.getBoundingClientRect() }));
       medidoEn = performance.now();
+      grande = parseFloat(getComputedStyle(el).fontSize) >= TEXTO_GRANDE;
     };
-    el.addEventListener('mousemove', e => {
+
+    const soltarTodas = () => {
+      for (const s of retenidas) soltarMosaico(el, s);
+      retenidas.clear();
+    };
+
+    // Qué letras están bajo el puntero: en los textos grandes solo la que tiene justo debajo;
+    // en los pequeños, también las vecinas (son tan finas que si no costaría acertar)
+    const evaluar = () => {
+      if (!raton) return;
       if (!medidas.length || performance.now() - medidoEn > 300) medir();
+      const { x, y } = raton;
+      let encontrada = false;
       for (const { s, r } of medidas) {
-        if (!s._listo || s._glitch) continue;
-        const dx = Math.abs(e.clientX - (r.left + r.width / 2));
-        const dy = Math.abs(e.clientY - (r.top + r.height / 2));
-        if (dx <= r.width * 1.2 && dy <= r.height) {
-          s._glitch = true;
-          glitchMosaico(el, s);
+        let dentro;
+        if (grande) {
+          dentro = !encontrada && x >= r.left && x < r.right && y >= r.top && y < r.bottom;
+          if (dentro) encontrada = true;
+        } else {
+          dentro = Math.abs(x - (r.left + r.width / 2)) <= r.width * 1.2 && Math.abs(y - (r.top + r.height / 2)) <= r.height;
+        }
+        if (dentro) {
+          if (s._listo && !retenidas.has(s) && glitchMosaico(el, s)) retenidas.add(s);
+        } else if (retenidas.has(s)) {
+          soltarMosaico(el, s);
+          retenidas.delete(s);
         }
       }
+    };
+
+    el.addEventListener('mousemove', e => {
+      raton = { x: e.clientX, y: e.clientY };
+      evaluar();
+    });
+    el.addEventListener('mouseleave', () => {
+      raton = null;
+      soltarTodas();
+    });
+    // Si se hace scroll con el puntero quieto, debajo aparecen otras letras
+    reevaluadores.add(() => {
+      if (!raton) return;
+      const r = el.getBoundingClientRect();
+      if (raton.x < r.left || raton.x > r.right || raton.y < r.top || raton.y > r.bottom) {
+        raton = null;
+        soltarTodas();
+        return;
+      }
+      medidoEn = 0;
+      evaluar();
     });
   }
+
+  const TEXTO_GRANDE = 40;                  // desde este tamaño (px) el efecto afecta solo a la letra que tienes encima
+  const reevaluadores = new Set();
+  window.addEventListener('scroll', () => reevaluadores.forEach(f => f()), { passive: true });
 
   // Si la tipografía llega tarde, se vuelven a medir las letras
   function remedirTodo() {
@@ -175,7 +222,7 @@
   // En qué momento (fracción de la duración de la letra) pasa cada cosa
   const FASES = {
     aparicion: { forma: .40, oculta: 0,  letra: .70 },   // se forma el mosaico, entra la letra real, el mosaico se deshace
-    glitch:    { forma: .30, oculta: .1, letra: .55 },   // al pasar el ratón: la letra se descompone y se recompone
+    glitch:    { forma: .30, oculta: .1, letra: .55, sosten: .46 },   // al pasar el ratón: la letra se descompone, se mantiene mientras el puntero esté encima y se recompone al irse
   };
 
   const mosaicos = [];
@@ -372,7 +419,13 @@
       activo = true;
       if (ahora < a.inicio) continue;
       const f = FASES[a.modo];
-      const p = (ahora - a.inicio) / a.dur;
+      let p;
+      if (a.modo === 'glitch') {
+        // Se queda deshecha (en f.sosten) hasta que el puntero se va; entonces sigue hasta recomponerse
+        p = a.soltar == null ? Math.min(f.sosten, (ahora - a.inicio) / a.dur) : a.pFijo + (ahora - a.soltar) / a.dur;
+      } else {
+        p = (ahora - a.inicio) / a.dur;
+      }
       const s = l.span;
 
       if (p >= 1) {                                   // terminó: queda la letra real
@@ -445,14 +498,29 @@
     if (m.medido) arrancarMosaicos();
   }
 
-  // Al pasar el ratón, la letra se descompone en caracteres y vuelve a formarse
+  // Al pasar el ratón, la letra se descompone en caracteres y se mantiene así mientras el puntero siga encima.
+  // Devuelve false si no se pudo (todavía no hay medidas, o la letra aún se está formando).
   function glitchMosaico(el, span) {
     const m = el._mosaico || crearMosaico(el);
     if (!m.medido) medirMosaico(m);
     const l = m.letras[span._idx];
-    if (!m.medido || !l) { span._glitch = false; return; }
-    l.anim = { modo: 'glitch', inicio: performance.now(), dur: 1000 };
+    if (!m.medido || !l) return false;
+    if (l.anim && l.anim.modo === 'aparicion') return false;
+    span._glitch = true;
+    l.anim = { modo: 'glitch', inicio: performance.now(), dur: 1000, soltar: null, pFijo: 0 };
     arrancarMosaicos();
+    return true;
+  }
+
+  // El puntero se va: la letra deja de estar retenida y se recompone
+  function soltarMosaico(el, span) {
+    const m = el._mosaico;
+    const l = m && m.letras[span._idx];
+    const a = l && l.anim;
+    if (!a || a.modo !== 'glitch' || a.soltar != null) return;
+    const ahora = performance.now();
+    a.pFijo = Math.min(FASES.glitch.sosten, (ahora - a.inicio) / a.dur);
+    a.soltar = ahora;
   }
 
   // Si cambia el tamaño de la ventana, se vuelve a medir
