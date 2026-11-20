@@ -126,12 +126,12 @@
     });
   }
 
-  // Al pasar el ratón por un texto, las letras cercanas se "descolocan" un momento
   /* Hover. El estado NO depende de los eventos de entrada y salida del ratón (los navegadores
      los disparan de más cuando el texto cambia bajo un puntero quieto): mientras el puntero esté
      sobre un texto, cada fotograma se comprueba dónde está y qué letras tiene debajo. */
 
-  const TEXTO_GRANDE = 40;                  // desde este tamaño (px) el efecto afecta solo a la letra que tienes encima
+  const TEXTO_GRANDE = 40;                  // desde este tamaño (px) la palabra solo se activa con el puntero dentro de ella; en texto fino se deja un margen
+  const RETARDO_LETRA = 22;                 // ms entre una letra y la siguiente cuando se deshace una palabra
   const puntero = { x: -1, y: -1, dentro: false };
   let versionScroll = 0;                    // sube con cada scroll: las medidas guardadas dejan de valer
   const evaluadores = new Set();
@@ -156,17 +156,18 @@
 
   function activarGlitch(el) {
     if (sinMovimiento || !window.matchMedia('(hover: hover)').matches) return;
-    let medidas = [];
+    let medidas = [];                       // una entrada por palabra: sus letras y su caja
     let medidoEn = 0;
     let medidoVersion = -1;
-    let grande = false;
+    let margen = 0;
     const retenidas = new Set();            // letras que se mantienen deshechas porque el puntero sigue encima
 
     const medir = () => {
-      medidas = $$('.let', el).map(s => ({ s, r: s.getBoundingClientRect() }));
+      medidas = $$('.pal', el).map(p => ({ letras: $$('.let', p), r: p.getBoundingClientRect() }));
       medidoEn = performance.now();
       medidoVersion = versionScroll;
-      grande = parseFloat(getComputedStyle(el).fontSize) >= TEXTO_GRANDE;
+      // el texto fino es difícil de acertar: se deja un pequeño margen alrededor de la palabra
+      margen = parseFloat(getComputedStyle(el).fontSize) >= TEXTO_GRANDE ? 0 : 4;
     };
 
     const soltarTodas = () => {
@@ -184,23 +185,28 @@
       }
       if (!medidas.length || medidoVersion !== versionScroll || performance.now() - medidoEn > 300) medir();
 
+      // La palabra que tienes debajo (si los márgenes de dos se pisan, la de centro más cercano)
       const { x, y } = puntero;
-      let encontrada = false;
-      for (const { s, r } of medidas) {
-        let dentro;
-        if (grande) {                         // texto grande: solo la letra que tienes justo debajo
-          dentro = !encontrada && x >= r.left && x < r.right && y >= r.top && y < r.bottom;
-          if (dentro) encontrada = true;
-        } else {                              // texto pequeño: también las vecinas (son tan finas que si no costaría acertar)
-          dentro = Math.abs(x - (r.left + r.width / 2)) <= r.width * 1.2 && Math.abs(y - (r.top + r.height / 2)) <= r.height;
-        }
-        if (retenidas.has(s) && !letraRetenida(el, s)) retenidas.delete(s);   // la animación se acabó o la cambió otra: se vuelve a lanzar si sigue debajo
-        if (dentro) {
-          if (s._listo && !retenidas.has(s) && glitchMosaico(el, s)) retenidas.add(s);
-        } else if (retenidas.has(s)) {
-          soltarMosaico(el, s);
-          retenidas.delete(s);
-        }
+      let activa = null, mejor = Infinity;
+      for (const w of medidas) {
+        const r = w.r;
+        if (x < r.left - margen || x >= r.right + margen || y < r.top - margen || y >= r.bottom + margen) continue;
+        const d = Math.abs(x - (r.left + r.width / 2));
+        if (d < mejor) { mejor = d; activa = w; }
+      }
+
+      // Toda la palabra se deshace a la vez (con un pequeño desfase de una letra a otra) y se mantiene mientras sigas encima
+      for (const w of medidas) {
+        const dentro = w === activa;
+        w.letras.forEach((s, i) => {
+          if (retenidas.has(s) && !letraRetenida(el, s)) retenidas.delete(s);   // la animación se acabó o la cambió otra: se vuelve a lanzar si sigue debajo
+          if (dentro) {
+            if (s._listo && !retenidas.has(s) && glitchMosaico(el, s, Math.min(i * RETARDO_LETRA, 220))) retenidas.add(s);
+          } else if (retenidas.has(s)) {
+            soltarMosaico(el, s);
+            retenidas.delete(s);
+          }
+        });
       }
     };
 
@@ -551,14 +557,14 @@
 
   // Al pasar el ratón, la letra se descompone en caracteres y se mantiene así mientras el puntero siga encima.
   // Devuelve false si no se pudo (todavía no hay medidas, o la letra aún se está formando).
-  function glitchMosaico(el, span) {
+  function glitchMosaico(el, span, retardo = 0) {
     const m = el._mosaico || crearMosaico(el);
     if (!m.medido) medirMosaico(m);
     const l = m.letras[span._idx];
     if (!m.medido || !l) return false;
     if (l.anim && l.anim.modo === 'aparicion') return false;
     span._glitch = true;
-    l.anim = { modo: 'glitch', inicio: performance.now(), dur: 1000, soltar: null, pFijo: 0 };
+    l.anim = { modo: 'glitch', inicio: performance.now() + retardo, dur: 1000, soltar: null, pFijo: 0 };
     arrancarMosaicos();
     return true;
   }
@@ -577,6 +583,7 @@
     const a = l && l.anim;
     if (!a || a.modo !== 'glitch' || a.soltar != null) return;
     const ahora = performance.now();
+    if (ahora < a.inicio) { l.anim = null; span._glitch = false; return; }   // el puntero se fue antes de que le tocara: no llegó a deshacerse
     a.pFijo = Math.min(FASES.glitch.sosten, (ahora - a.inicio) / a.dur);
     a.soltar = ahora;
   }
