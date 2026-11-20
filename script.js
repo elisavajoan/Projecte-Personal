@@ -865,7 +865,7 @@
 
     // --- Rejilla de caracteres ---
     let cols = 0, filas = 0, cw = 8, ch = 16, dpr = 1, tam = 12;
-    let celdas, prof;                                  // código de carácter de cada casilla y profundidad
+    let celdas, prof, brillo;                          // código de carácter de cada casilla, profundidad y opacidad (0-255)
     const sprites = new Map();
 
     function medir() {
@@ -880,6 +880,7 @@
       lienzo.width = Math.round(W * dpr); lienzo.height = Math.round(H * dpr);
       celdas = new Uint16Array(cols * filas);
       prof = new Float32Array(cols * filas);
+      brillo = new Uint8Array(cols * filas).fill(255);
       sprites.clear();
       medirCorredor();
     }
@@ -937,7 +938,7 @@
     }
 
     function figura(forma, giro, inclina) {
-      celdas.fill(0); prof.fill(0);
+      celdas.fill(0); prof.fill(0); brillo.fill(255);
       rotA = Math.cos(giro * 0.35); rotB = Math.sin(giro * 0.35);
       rotC = Math.cos(inclina); rotD = Math.sin(inclina);
       formaAct = forma; giroAct = giro;
@@ -983,18 +984,35 @@
     const cvCor = document.createElement('canvas');
     const cCor = cvCor.getContext('2d', { willReadFrequently: true });
     let corL = 0, corX = 0, corY = 0, corW = 0, corH = 0;
-    let masc = new Uint8Array(0);
+    let alturaA = new Float32Array(0), alturaB = new Float32Array(0);
     const CICLO_CARRERA = 0.8;                         // segundos que dura una zancada completa
-    const LLENO = ['N', 'N', 'N', 'N', 'M', '8', '0'].map(c => c.charCodeAt(0));
+    const LUZ_COR = (() => { const v = [-0.55, -0.65, 0.55]; const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); return v.map(x => x / n); })();
 
     function medirCorredor() {
-      corL = Math.min(filas * ch * 0.62, cols * cw * 0.7);   // altura del corredor en px
+      corL = Math.min(filas * ch * 0.66, cols * cw * 0.72);   // altura del corredor en px
       corX = cols * cw / 2;                                    // posición de la cadera
       corY = filas * ch * 0.45;
       corW = Math.ceil(corL * 1.5 * ESC_COR);
       corH = Math.ceil(corL * 1.25 * ESC_COR);
       cvCor.width = corW; cvCor.height = corH;
-      masc = new Uint8Array(cols * filas);
+      alturaA = new Float32Array(corW * corH);
+      alturaB = new Float32Array(corW * corH);
+    }
+
+    // Desenfoque de caja en una dirección (paso = 1 horizontal, paso = ancho vertical)
+    function desenfoque(src, dst, ancho, alto, r, horizontal) {
+      const largo = horizontal ? ancho : alto, lineas = horizontal ? alto : ancho;
+      const paso = horizontal ? 1 : ancho, salto = horizontal ? ancho : 1;
+      const n = 2 * r + 1;
+      for (let l = 0; l < lineas; l++) {
+        const o = l * salto;
+        let acc = 0;
+        for (let i = -r; i <= r; i++) acc += src[o + Math.min(largo - 1, Math.max(0, i)) * paso];
+        for (let i = 0; i < largo; i++) {
+          dst[o + i * paso] = acc / n;
+          acc += src[o + Math.min(largo - 1, i + r + 1) * paso] - src[o + Math.max(0, i - r) * paso];
+        }
+      }
     }
 
     // Esqueleto en una fase de la zancada (fase en radianes), mirando a la derecha
@@ -1010,15 +1028,15 @@
         c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
       };
 
-      const inclinacionTronco = 0.32;
+      const inclinacionTronco = 0.24;
       const hx = 0, hy = 0.016 * L * Math.cos(2 * fase);                 // cadera, con rebote
       const sx = hx + Math.sin(inclinacionTronco) * 0.30 * L;           // hombro
       const sy = hy - Math.cos(inclinacionTronco) * 0.30 * L;
-      seg(hx, hy, sx, sy, 0.17);                                        // tronco
+      seg(hx, hy, sx, sy, 0.21);                                        // tronco
       const cx = sx + Math.sin(inclinacionTronco * 0.5) * 0.14 * L;      // cabeza
       const cy = sy - Math.cos(inclinacionTronco * 0.5) * 0.14 * L;
-      seg(sx, sy, cx, cy, 0.07);
-      c.beginPath(); c.arc(cx + 0.012 * L, cy, 0.082 * L, 0, TAU); c.fill();
+      seg(sx, sy, cx, cy, 0.09);
+      c.beginPath(); c.arc(cx + 0.012 * L, cy, 0.098 * L, 0, TAU); c.fill();
 
       for (const o of [Math.PI, 0]) {
         const f = fase + o;
@@ -1028,56 +1046,58 @@
         const kx = hx + Math.sin(a) * 0.245 * L, ky = hy + Math.cos(a) * 0.245 * L;
         const b = a - flexion;
         const px = kx + Math.sin(b) * 0.245 * L, py = ky + Math.cos(b) * 0.245 * L;
-        seg(hx, hy, kx, ky, 0.135);
-        seg(kx, ky, px, py, 0.1);
-        seg(px, py, px + Math.cos(b) * 0.1 * L, py - Math.sin(b) * 0.1 * L, 0.07);   // pie
+        seg(hx, hy, kx, ky, 0.165);
+        seg(kx, ky, px, py, 0.125);
+        seg(px, py, px + Math.cos(b) * 0.1 * L, py - Math.sin(b) * 0.11 * L, 0.09);   // pie
         // Brazo contrario a la pierna, con el codo doblado
         const g = 0.25 - 0.85 * Math.sin(f);
         const ex = sx + Math.sin(g) * 0.19 * L, ey = sy + Math.cos(g) * 0.19 * L;
         const d = g + 1.35 + 0.25 * Math.sin(f);
-        seg(sx, sy, ex, ey, 0.082);
-        seg(ex, ey, ex + Math.sin(d) * 0.18 * L, ey + Math.cos(d) * 0.18 * L, 0.07);
+        seg(sx, sy, ex, ey, 0.1);
+        seg(ex, ey, ex + Math.sin(d) * 0.18 * L, ey + Math.cos(d) * 0.18 * L, 0.085);
       }
     }
 
-    // Pasa la silueta a la rejilla: aparece (crece) con "visible" de 0 a 1
+    // Pasa la silueta a la rejilla con volumen: la silueta se desenfoca para tener una "altura" (alta en el
+    // cuerpo, baja en los bordes), de ahí salen las normales y una luz desde arriba a la izquierda decide
+    // el carácter y lo gris que es cada casilla. Los bordes se funden con el código (sin hueco alrededor).
+    // "visible" va de 0 a 1 mientras aparece.
     function corredor(fase, visible) {
       dibujarCorredor(fase);
       const datos = cCor.getImageData(0, 0, corW, corH).data;
+      for (let i = 0, n = corW * corH; i < n; i++) alturaA[i] = datos[i * 4 + 3] / 255;
+      const r = Math.max(2, Math.round(corL * ESC_COR * 0.03));
+      for (let pasada = 0; pasada < 2; pasada++) {
+        desenfoque(alturaA, alturaB, corW, corH, r, true);
+        desenfoque(alturaB, alturaA, corW, corH, r, false);
+      }
+      const H = alturaA;
+
       const x0 = corX - 0.75 * corL, y0 = corY - 0.62 * corL;
       const c0 = Math.max(0, Math.floor(x0 / cw)), c1 = Math.min(cols - 1, Math.ceil((x0 + corW / ESC_COR) / cw));
       const f0 = Math.max(0, Math.floor(y0 / ch)), f1 = Math.min(filas - 1, Math.ceil((y0 + corH / ESC_COR) / ch));
-      masc.fill(0);
+      const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
       for (let f = f0; f <= f1; f++) {
         for (let c = c0; c <= c1; c++) {
           const ix = Math.round(((c + 0.5) * cw - x0) * ESC_COR), iy = Math.round(((f + 0.5) * ch - y0) * ESC_COR);
-          if (ix < 0 || iy < 0 || ix >= corW || iy >= corH) continue;
-          const a = datos[(iy * corW + ix) * 4 + 3];
-          if (a < 110) continue;
+          if (ix < 2 || iy < 2 || ix >= corW - 2 || iy >= corH - 2) continue;
+          const k = iy * corW + ix;
+          const alto = H[k];
+          if (alto < 0.03) continue;
+          // Cuanto más cerca del borde, más probable que la casilla siga siendo del código (el borde se funde)
+          const cobertura = lim((alto - 0.03) / 0.25, 0, 1);
           const azar = (((c * 73856093) ^ (f * 19349663)) >>> 0) % 1000 / 1000;
-          if (azar < visible) masc[f * cols + c] = a > 200 ? 2 : 1;           // 2 = dentro, 1 = borde
-        }
-      }
-      // Hueco alrededor de la silueta (se borra el código de detrás) y relleno con caracteres densos
-      for (let f = f0; f <= f1; f++) {
-        for (let c = c0; c <= c1; c++) {
-          const k = f * cols + c;
-          if (masc[k]) continue;
-          let cerca = false;
-          for (let df = -1; df <= 1 && !cerca; df++) {
-            for (let dc = -2; dc <= 2; dc++) {
-              const ff = f + df, cc = c + dc;
-              if (ff >= 0 && ff < filas && cc >= 0 && cc < cols && masc[ff * cols + cc]) { cerca = true; break; }
-            }
-          }
-          if (cerca) celdas[k] = 0;
-        }
-      }
-      for (let f = f0; f <= f1; f++) {
-        for (let c = c0; c <= c1; c++) {
-          const k = f * cols + c;
-          if (!masc[k]) continue;
-          celdas[k] = masc[k] === 2 ? LLENO[(c * 7 + f * 13 + (fase * 3 | 0)) % LLENO.length] : 57;   // el borde, con «9»
+          if (azar >= cobertura * visible) continue;
+
+          // Normal de la superficie y luz
+          const nx0 = -(H[k + 2] - H[k - 2]) * 3, ny0 = -(H[k + 2 * corW] - H[k - 2 * corW]) * 3;
+          const nl = Math.sqrt(nx0 * nx0 + ny0 * ny0 + 1);
+          const luz = Math.max(0, (nx0 * LUZ_COR[0] + ny0 * LUZ_COR[1] + LUZ_COR[2]) / nl);
+          const v = lim(0.12 + 0.95 * luz, 0, 1);
+          // Cuerpo con caracteres densos que se aclaran en las sombras; dentro de cada nivel, uno u otro según la casilla
+          const grupo = v >= 0.62 ? 'NNMN80' : v >= 0.4 ? '98O0N8' : v >= 0.22 ? '?97I8' : '+=I7?';
+          celdas[f * cols + c] = grupo.charCodeAt(((c * 7 + f * 13) >>> 0) % grupo.length);
+          brillo[f * cols + c] = Math.round(255 * lim(0.3 + 0.6 * v, 0, 1) * (0.5 + 0.5 * cobertura));   // gris, y más oscuro en los bordes
         }
       }
     }
@@ -1183,8 +1203,10 @@
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+      ctx.globalAlpha = 1;
       ctx.fillStyle = '#000';
       ctx.fillRect(0, Math.round(yFrente * ch * dpr), lienzo.width, lienzo.height);   // el negro tapa lo que aún no ha llegado
+      let alfaActual = 255;
       for (let f = 0; f < filas; f++) {
         const d = frente - f;                              // cuánto ha pasado el frente por esta fila
         if (fase === 'saliendo' && d >= ONDA_BANDA) continue;
@@ -1196,9 +1218,12 @@
             if (Math.random() < 0.6 || !cod) cod = RAMPA.charCodeAt(Math.floor(Math.random() * RAMPA.length));
           }
           if (!cod || cod === 32) continue;
+          const br = brillo[f * cols + c];
+          if (br !== alfaActual) { ctx.globalAlpha = br / 255; alfaActual = br; }
           ctx.drawImage(sprite(cod), Math.round(c * cw * dpr), Math.round(f * ch * dpr));
         }
       }
+      ctx.globalAlpha = 1;
 
       if (fase === 'saliendo' && frente - filas >= ONDA_BANDA) { terminar(); return; }
       requestAnimationFrame(cuadro);
@@ -1231,8 +1256,12 @@
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
       for (let f = 0; f < filas; f++) for (let c = 0; c < cols; c++) {
         const cod = celdas[f * cols + c];
-        if (cod && cod !== 32) ctx.drawImage(sprite(cod), Math.round(c * cw * dpr), Math.round(f * ch * dpr));
+        if (cod && cod !== 32) {
+          ctx.globalAlpha = brillo[f * cols + c] / 255;
+          ctx.drawImage(sprite(cod), Math.round(c * cw * dpr), Math.round(f * ch * dpr));
+        }
       }
+      ctx.globalAlpha = 1;
       ctx.fillStyle = '#fff';
       ctx.font = `500 ${tam * dpr}px ${FUENTE_MOSAICO}`;
       ctx.textAlign = 'center';
