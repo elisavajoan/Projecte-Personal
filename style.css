@@ -160,6 +160,9 @@ body {
    así la maquetación no se mueve mientras cambian los símbolos.
    ========================================================= */
 
+/* Mosaico: el canvas con los caracteres va encima del texto y no recibe el ratón */
+.mosaico { position: absolute; pointer-events: none; }
+
 /* Mientras el JS prepara el texto, se oculta para que no parpadee.
    Si el JS fallara, a los 3 s se muestra igualmente. */
 .js [data-decode]:not(.dividido) {

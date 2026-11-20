@@ -3,7 +3,9 @@
 
    1. Utilidades y datos (se leen del HTML)
    2. Texto "decodificado": cada letra pasa por una escala de símbolos
-      hasta convertirse en la letra real (la técnica de aino.agency)
+      hasta convertirse en la letra real (la técnica de aino.agency).
+      En los textos grandes (data-mosaico) cada letra se forma con
+      muchos caracteres, como el wordmark de aino.agency
    3. Torbellino de horas (canvas)
    4. Arranque: totales, aparición al entrar en pantalla,
       filas desplegables
@@ -167,6 +169,7 @@
   // Lanza la aparición. data-velocidad = ms de retraso entre una letra y la siguiente
   // (la ola de izquierda a derecha); data-duracion = ms que tarda cada letra en resolverse.
   function decodificar(el, retardo = 0) {
+    if (el.hasAttribute('data-mosaico')) return lanzarMosaico(el, retardo);
     const velocidad = parseFloat(el.dataset.velocidad) || 1;
     const duracion = parseFloat(el.dataset.duracion) || 400;
     const inicio = performance.now() + retardo;
@@ -207,7 +210,8 @@
         const dy = Math.abs(e.clientY - (r.top + r.height / 2));
         if (dx <= r.width * 1.2 && dy <= r.height) {
           s._glitch = true;
-          activas.set(s, { tipo: 'glitch', inicio: performance.now(), dur: 1000, c: s.dataset.c });
+          if (el._mosaico) glitchMosaico(el, s);
+          else activas.set(s, { tipo: 'glitch', inicio: performance.now(), dur: 1000, c: s.dataset.c });
         }
       }
       arrancar();
@@ -217,7 +221,257 @@
   // Si la tipografía llega tarde, se vuelven a medir las letras
   function remedirTodo() {
     fijarAnchos($$('.let'));
+    mosaicos.forEach(medirMosaico);
   }
+
+  /* ---------- 2b. Mosaico ----------
+     Los textos grandes (data-mosaico) no cambian de símbolo letra a letra:
+     cada letra se forma con muchos caracteres, como en la web de aino.agency.
+     Se dibuja la letra en un canvas, se divide en una rejilla y cada casilla
+     recibe un carácter según lo llena que esté (N = llena, 9, ?, +, - y . = casi vacía).
+     Los caracteres aparecen pasando por la escala de símbolos, y cuando la letra
+     está formada entra la letra real y los caracteres se deshacen. */
+
+  // De más llena a más vacía: [cobertura mínima, carácter]
+  const NIVELES_MOSAICO = [[.8, 'N'], [.6, '9'], [.42, '?'], [.25, '+'], [.1, '-'], [.03, '.']];
+  const FUENTE_MOSAICO = '"SF Mono", ui-monospace, Menlo, Consolas, "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace';
+  const FILAS_POR_EM = 16;      // filas de caracteres por cada em de texto (más = caracteres más pequeños)
+  const CELDA_MIN = 5;          // alto mínimo de una casilla, en px
+  const MAX_CELDAS = 36000;
+  const PROPORCION = 0.56;      // ancho / alto de una casilla (la de una tipografía monoespaciada)
+
+  // En qué momento (fracción de la duración de la letra) pasa cada cosa
+  const FASES = {
+    aparicion: { forma: .40, oculta: 0,  letra: .70 },   // se forma el mosaico, entra la letra real, el mosaico se deshace
+    glitch:    { forma: .30, oculta: .1, letra: .55 },   // al pasar el ratón: la letra se descompone y se recompone
+  };
+
+  const mosaicos = [];
+  let bucleMosaicos = false;
+
+  function crearMosaico(el) {
+    if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+    const lienzo = document.createElement('canvas');
+    lienzo.className = 'mosaico';
+    lienzo.setAttribute('aria-hidden', 'true');
+    el.append(lienzo);
+    const m = {
+      el, lienzo, ctx: lienzo.getContext('2d'),
+      letras: $$('.let', el).map((span, i) => {
+        span._idx = i;
+        return { span, c: span.dataset.c, anim: null, celdas: [], color: '#fff' };
+      }),
+      sprites: new Map(), celdaW: 1, celdaH: 1, dpr: 1,
+    };
+    el._mosaico = m;
+    mosaicos.push(m);
+    medirMosaico(m);
+    return m;
+  }
+
+  // Dibuja las letras en un canvas oculto y reparte un carácter por casilla
+  function medirMosaico(m) {
+    const { el, letras } = m;
+    const caja = el.getBoundingClientRect();
+    if (!caja.width || !caja.height) return;
+
+    // Con la letra real puesta se mide dónde cae cada una; después se deja como estaba
+    const previos = letras.map(l => l.span.textContent);
+    letras.forEach(l => { l.span.textContent = l.c; });
+    const rango = document.createRange();
+    const medidas = letras.map(l => {
+      const cs = getComputedStyle(l.span);
+      rango.selectNodeContents(l.span);
+      const r = rango.getBoundingClientRect();
+      const rs = l.span.getBoundingClientRect();
+      return {
+        fuente: `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
+        tam: parseFloat(cs.fontSize), color: cs.color,
+        x: r.left - caja.left, arriba: r.top - caja.top, alto: r.height,
+        x0: rs.left - caja.left, x1: rs.right - caja.left,
+        y0: rs.top - caja.top, y1: rs.bottom - caja.top,
+      };
+    });
+    letras.forEach((l, i) => { l.span.textContent = previos[i]; });
+
+    // El canvas sobresale del texto (rabos de la y, etc.)
+    const tamMax = Math.max(...medidas.map(d => d.tam));
+    const ext = Math.ceil(tamMax * 0.35);
+    const W = Math.ceil(caja.width + ext * 2);
+    const H = Math.ceil(caja.height + ext * 2);
+
+    // Raster de las letras (blanco sobre transparente)
+    const crudo = document.createElement('canvas');
+    crudo.width = W; crudo.height = H;
+    const cr = crudo.getContext('2d', { willReadFrequently: true });
+    cr.fillStyle = '#fff';
+    cr.textBaseline = 'alphabetic';
+    letras.forEach((l, i) => {
+      const d = medidas[i];
+      cr.font = d.fuente;
+      const ascenso = cr.measureText(l.c).fontBoundingBoxAscent ?? d.alto * 0.8;
+      cr.fillText(l.c, ext + d.x, ext + d.arriba + ascenso);
+    });
+    const alfa = cr.getImageData(0, 0, W, H).data;
+
+    // Tamaño de las casillas
+    let celdaH = Math.max(CELDA_MIN, tamMax / FILAS_POR_EM);
+    if ((W / (celdaH * PROPORCION)) * (H / celdaH) > MAX_CELDAS) {
+      celdaH *= Math.sqrt((W / (celdaH * PROPORCION)) * (H / celdaH) / MAX_CELDAS);
+    }
+    const celdaW = celdaH * PROPORCION;
+    const cols = Math.ceil(W / celdaW);
+    const filas = Math.ceil(H / celdaH);
+
+    // Cobertura de cada casilla = media del alfa de sus píxeles
+    const suma = new Float32Array(cols * filas);
+    const colDe = new Uint16Array(W);
+    for (let x = 0; x < W; x++) colDe[x] = Math.min(cols - 1, Math.floor(x / celdaW));
+    for (let y = 0; y < H; y++) {
+      const base = Math.min(filas - 1, Math.floor(y / celdaH)) * cols;
+      const fila = y * W * 4 + 3;
+      for (let x = 0; x < W; x++) suma[base + colDe[x]] += alfa[fila + x * 4];
+    }
+
+    // Cada casilla con tinta pertenece a la letra más cercana
+    letras.forEach((l, i) => { l.celdas = []; l.color = medidas[i].color; });
+    const area = celdaW * celdaH * 255;
+    for (let f = 0; f < filas; f++) {
+      for (let c = 0; c < cols; c++) {
+        const cob = suma[f * cols + c] / area;
+        const nivel = NIVELES_MOSAICO.find(([min]) => cob >= min);
+        if (!nivel) continue;
+        const cx = (c + .5) * celdaW - ext;
+        const cy = (f + .5) * celdaH - ext;
+        let mejor = 0, distMin = Infinity;
+        for (let i = 0; i < medidas.length; i++) {
+          const d = medidas[i];
+          const dx = Math.max(d.x0 - cx, 0, cx - d.x1);
+          const dy = Math.max(d.y0 - cy, 0, cy - d.y1);
+          const dist = dx * dx + dy * dy;
+          if (dist < distMin) { distMin = dist; mejor = i; }
+        }
+        letras[mejor].celdas.push({ c, f, car: nivel[1], r1: Math.random(), r2: Math.random() });
+      }
+    }
+
+    // Canvas visible: mismo sitio que el texto, con el margen extra
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    m.dpr = dpr; m.celdaW = celdaW; m.celdaH = celdaH; m.sprites.clear();
+    const lz = m.lienzo;
+    lz.width = Math.round(W * dpr); lz.height = Math.round(H * dpr);
+    lz.style.width = W + 'px'; lz.style.height = H + 'px';
+    lz.style.left = -ext + 'px'; lz.style.top = -ext + 'px';
+  }
+
+  // Un carácter ya dibujado en una casilla (se reutiliza en cada fotograma)
+  function spriteMosaico(m, car, color) {
+    const clave = color + car;
+    let sp = m.sprites.get(clave);
+    if (!sp) {
+      const w = Math.max(1, Math.round(m.celdaW * m.dpr));
+      const h = Math.max(1, Math.round(m.celdaH * m.dpr));
+      sp = document.createElement('canvas');
+      sp.width = w; sp.height = h;
+      const c = sp.getContext('2d');
+      c.fillStyle = color;
+      c.font = `600 ${h * 0.92}px ${FUENTE_MOSAICO}`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(car, w / 2, h / 2 + h * 0.04);
+      m.sprites.set(clave, sp);
+    }
+    return sp;
+  }
+
+  // Dibuja un fotograma. Devuelve true mientras alguna letra siga animándose.
+  function dibujarMosaico(m, ahora) {
+    const { ctx, lienzo, dpr, celdaW, celdaH } = m;
+    ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+    let activo = false;
+    for (const l of m.letras) {
+      const a = l.anim;
+      if (!a) continue;
+      activo = true;
+      if (ahora < a.inicio) continue;
+      const f = FASES[a.modo];
+      const p = (ahora - a.inicio) / a.dur;
+      const s = l.span;
+
+      if (p >= 1) {                                   // terminó: queda la letra real
+        if (s.textContent !== l.c) s.textContent = l.c;
+        s._listo = true; s._glitch = false; l.anim = null;
+        continue;
+      }
+      // La letra real se esconde mientras se forma el mosaico y vuelve cuando toca
+      const real = p >= f.letra;
+      const visible = real || p < f.oculta;
+      const quiere = visible ? l.c : VACIO;
+      if (s.textContent !== quiere) s.textContent = quiere;
+
+      for (const k of l.celdas) {
+        const edad = (p - k.r1 * f.forma) / .16;                       // la casilla aparece
+        if (edad <= 0) continue;
+        const funde = f.letra + k.r2 * (1 - f.letra - .12);            // y luego se deshace
+        const fase = (p - funde) / .12;
+        if (fase >= 1) continue;
+        let car = k.car;
+        if (edad < 1) car = glifoAparicion(k.car, suavizar(edad));
+        else if (fase > 0) car = glifoAparicion(k.car, 1 - fase);
+        if (!car || car === VACIO || car === ' ') continue;
+        ctx.drawImage(spriteMosaico(m, car, l.color), Math.round(k.c * celdaW * dpr), Math.round(k.f * celdaH * dpr));
+      }
+    }
+    return activo;
+  }
+
+  function pasoMosaicos() {
+    const ahora = performance.now();
+    let sigue = false;
+    for (const m of mosaicos) if (dibujarMosaico(m, ahora)) sigue = true;
+    if (sigue) requestAnimationFrame(pasoMosaicos);
+    else bucleMosaicos = false;
+  }
+
+  function arrancarMosaicos() {
+    if (bucleMosaicos) return;
+    bucleMosaicos = true;
+    requestAnimationFrame(pasoMosaicos);
+  }
+
+  // Aparición: igual que decodificar(), pero cada letra se forma con caracteres
+  function lanzarMosaico(el, retardo = 0) {
+    const m = el._mosaico || crearMosaico(el);
+    const velocidad = parseFloat(el.dataset.velocidad) || 1;
+    const duracion = parseFloat(el.dataset.duracion) || 400;
+    const inicio = performance.now() + retardo;
+    m.letras.forEach((l, i) => {
+      l.span.textContent = VACIO;
+      l.span._listo = false;
+      l.span._glitch = false;
+      l.anim = { modo: 'aparicion', inicio: inicio + i * velocidad, dur: duracion };
+    });
+    arrancarMosaicos();
+  }
+
+  // Al pasar el ratón, la letra se descompone en caracteres y vuelve a formarse
+  function glitchMosaico(el, span) {
+    const m = el._mosaico;
+    const l = m && m.letras[span._idx];
+    if (!l) { span._glitch = false; return; }
+    l.anim = { modo: 'glitch', inicio: performance.now(), dur: 1000 };
+    arrancarMosaicos();
+  }
+
+  // Si cambia el tamaño de la ventana, se vuelve a medir
+  let tamanoPrevio = window.innerWidth;
+  let esperaTamano;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === tamanoPrevio) return;       // en móvil, la barra de direcciones no cuenta
+    tamanoPrevio = window.innerWidth;
+    clearTimeout(esperaTamano);
+    esperaTamano = setTimeout(() => mosaicos.forEach(medirMosaico), 200);
+  });
 
   // Cada elemento se anima una sola vez, cuando entra en pantalla (como en aino.agency)
   const observador = new IntersectionObserver(entradas => {
