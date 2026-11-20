@@ -344,15 +344,53 @@
       for (let x = 0; x < W; x++) suma[base + colDe[x]] += alfa[fila + x * 4];
     }
 
+    // Dónde cae la tinta de cada letra. Con el tracking negativo de los titulares el dibujo sobresale
+    // de la caja de la letra (la «D» de «Disseny» invade la caja de la «i»), y esa parte tiene que
+    // animarse con su letra y no con la vecina.
+    const medidor = document.createElement('canvas').getContext('2d');
+    medidas.forEach((d, i) => {
+      medidor.font = d.fuente;
+      const tm = medidor.measureText(letras[i].c);
+      d.tintaI = d.x - tm.actualBoundingBoxLeft;
+      d.tintaD = d.x + tm.actualBoundingBoxRight;
+      d.conTinta = tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight > 0;
+    });
+
     // Dueño de cada casilla: la letra sobre la que cae (con un poco de margen arriba y abajo)
     const dueno = new Int16Array(cols * filas).fill(-1);
-    medidas.forEach((d, i) => {
+    const filasDe = d => {
       const margen = d.tam * 0.12;
+      return [Math.max(0, Math.floor((d.y0 - margen + ext) / celdaH)),
+              Math.min(filas - 1, Math.floor((d.y1 + margen + ext) / celdaH))];
+    };
+    medidas.forEach((d, i) => {
       const c0 = Math.max(0, Math.floor((d.x0 + ext) / celdaW));
       const c1 = Math.min(cols - 1, Math.floor((d.x1 + ext) / celdaW));
-      const f0 = Math.max(0, Math.floor((d.y0 - margen + ext) / celdaH));
-      const f1 = Math.min(filas - 1, Math.floor((d.y1 + margen + ext) / celdaH));
+      const [f0, f1] = filasDe(d);
       for (let f = f0; f <= f1; f++) for (let c = c0; c <= c1; c++) dueno[f * cols + c] = i;
+    });
+    // Lo que sobresale de la caja pasa a su letra, siempre que esa zona no sea tinta de la letra vecina
+    medidas.forEach((d, i) => {
+      if (!d.conTinta) return;
+      const c0 = Math.max(0, Math.floor((d.tintaI + ext) / celdaW));
+      const c1 = Math.min(cols - 1, Math.floor((d.tintaD + ext) / celdaW));
+      const f0 = Math.max(0, Math.floor((d.y0 + ext) / celdaH));
+      const f1 = Math.min(filas - 1, Math.floor((d.y1 + ext) / celdaH));
+      for (let c = c0; c <= c1; c++) {
+        const cx = (c + .5) * celdaW - ext;
+        if (cx < d.tintaI || cx > d.tintaD) continue;
+        for (let f = f0; f <= f1; f++) {
+          const k = f * cols + c;
+          const j = dueno[k];
+          if (j === i) continue;
+          if (j >= 0) {
+            const dj = medidas[j];
+            const cy = (f + .5) * celdaH - ext;
+            if (dj.conTinta && cy >= dj.y0 && cy <= dj.y1 && cx >= dj.tintaI && cx <= dj.tintaD) continue;
+          }
+          dueno[k] = i;
+        }
+      }
     });
 
     letras.forEach((l, i) => { l.celdas = []; l.color = medidas[i].color; });
