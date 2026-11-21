@@ -42,7 +42,7 @@
   const totalHoras = programas.reduce((suma, p) => suma + p.horas, 0);
   const maxHoras = Math.max(...programas.map(p => p.horas));
 
-  const NUMEROS = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
+  const NUMEROS = ['', 'un', 'dos', 'tres', 'quatre', 'cinc', 'sis', 'set', 'vuit', 'nou', 'deu'];
 
   /* ---------- 2. Texto decodificado ---------- */
 
@@ -107,23 +107,28 @@
 
     fijarAnchos(letras);
     for (const s of letras) {
-      s.textContent = VACIO;
+      s.classList.add('oc');
+      s._oc = true;
       s._listo = false;
     }
     el.classList.add('dividido');
   }
 
+  // Muestra u oculta la letra real. La letra siempre está en el DOM: solo cambia su color,
+  // así el navegador repinta pero no vuelve a maquetar la línea en cada fotograma.
+  function verLetra(s, visible) {
+    if (s._oc === !visible) return;
+    s._oc = !visible;
+    s.classList.toggle('oc', !visible);
+  }
+
   // Mide cada letra y fija su ancho (en em, para que siga siendo fluido).
   // Así la línea no se mueve cuando la letra pasa por símbolos más anchos o más estrechos.
   function fijarAnchos(letras) {
-    const previos = letras.map(s => s.textContent);
-    letras.forEach(s => { s.style.width = ''; s.textContent = s.dataset.c; });
+    letras.forEach(s => { s.style.width = ''; });
     const anchos = letras.map(s => s.getBoundingClientRect().width);
     const tamanos = letras.map(s => parseFloat(getComputedStyle(s.parentNode.parentNode).fontSize));
-    letras.forEach((s, i) => {
-      s.style.width = (anchos[i] / tamanos[i]) + 'em';
-      s.textContent = previos[i];
-    });
+    letras.forEach((s, i) => { s.style.width = (anchos[i] / tamanos[i]) + 'em'; });
   }
 
   /* Hover. El estado NO depende de los eventos de entrada y salida del ratón (los navegadores
@@ -218,7 +223,7 @@
   // Si la tipografía llega tarde, se vuelven a medir las letras
   function remedirTodo() {
     fijarAnchos($$('.let'));
-    mosaicos.forEach(m => { if (m.medido) medirMosaico(m); });
+    medirMosaicos(mosaicos.filter(m => m.medido));
   }
 
   /* ---------- 2b. Mosaico ----------
@@ -265,29 +270,62 @@
         span._idx = i;
         return { span, c: span.dataset.c, anim: null, celdas: [], color: '#fff' };
       }),
-      sprites: new Map(), mascara: null, medido: false, celdaW: 1, celdaH: 1, dpr: 1,
+      atlas: null, mascara: null, medido: false, celdaW: 1, celdaH: 1, dpr: 1,
     };
     el._mosaico = m;
     mosaicos.push(m);
     return m;
   }
 
-  // Dibuja las letras en canvas ocultos (la máscara y el raster para medir) y reparte un carácter por casilla
-  function medirMosaico(m) {
+  // Atlas de caracteres: todos los glifos de un lienzo dibujados en una sola imagen (16 × 16 huecos).
+  // Copiar siempre desde la misma imagen deja que la tarjeta gráfica agrupe miles de copias
+  // en unas pocas operaciones, en lugar de cambiar de imagen en cada carácter.
+  function crearAtlas(w, h, pintar) {
+    const LADO = 16;
+    const lienzo = document.createElement('canvas');
+    lienzo.width = w * LADO; lienzo.height = h * LADO;
+    const c = lienzo.getContext('2d');
+    const huecos = new Map();
+    return {
+      lienzo, w, h,
+      // Posición [x, y] del glifo dentro del atlas (se dibuja la primera vez que se pide)
+      hueco(clave, ...datos) {
+        let pos = huecos.get(clave);
+        if (pos === undefined) {
+          if (huecos.size >= LADO * LADO) { c.clearRect(0, 0, lienzo.width, lienzo.height); huecos.clear(); }
+          const n = huecos.size;
+          pos = [(n % LADO) * w, Math.floor(n / LADO) * h];
+          c.save();
+          c.beginPath(); c.rect(pos[0], pos[1], w, h); c.clip();
+          pintar(c, pos[0], pos[1], ...datos);
+          c.restore();
+          huecos.set(clave, pos);
+        }
+        return pos;
+      },
+    };
+  }
+
+  // Mide varios textos a la vez: primero se leen todas las medidas y después se escribe.
+  // Así el navegador calcula la maquetación una sola vez, y no una vez por cada texto.
+  function medirMosaicos(lista) {
+    const datos = lista.map(leerMosaico);
+    lista.forEach((m, i) => aplicarMosaico(m, datos[i]));
+  }
+  function medirMosaico(m) { medirMosaicos([m]); }
+
+  // Lee dónde cae cada letra, dibuja las letras en canvas ocultos (la máscara y el raster
+  // para medir) y reparte un carácter por casilla. No toca la página.
+  function leerMosaico(m) {
     const { el, letras } = m;
     const caja = el.getBoundingClientRect();
-    m.medido = false;
-    if (!caja.width || !caja.height) return;
+    if (!caja.width || !caja.height) return null;
 
     const host = anfitrionDe(el);
-    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-    if (lienzoNoEn(m, host)) host.append(m.lienzo);
-    m.anfitrion = host;
+    const hacerRelativo = getComputedStyle(host).position === 'static';
     const cajaHost = host.getBoundingClientRect();
 
-    // Con la letra real puesta se mide dónde cae cada una; después se deja como estaba
-    const previos = letras.map(l => l.span.textContent);
-    letras.forEach(l => { l.span.textContent = l.c; });
+    // Las letras reales siempre están en su sitio (ocultas solo con el color), así que se miden tal cual
     const rango = document.createRange();
     const medidas = letras.map(l => {
       const cs = getComputedStyle(l.span);
@@ -302,7 +340,6 @@
         y0: rs.top - caja.top, y1: rs.bottom - caja.top,
       };
     });
-    letras.forEach((l, i) => { l.span.textContent = previos[i]; });
 
     // El canvas sobresale del texto (rabos de la y, etc.)
     const tamMax = Math.max(...medidas.map(d => d.tam));
@@ -399,7 +436,7 @@
       }
     });
 
-    letras.forEach((l, i) => { l.celdas = []; l.color = medidas[i].color; });
+    const celdas = letras.map(() => []);
     const area = celdaW * celdaH * 255;
     for (let f = 0; f < filas; f++) {
       for (let c = 0; c < cols; c++) {
@@ -419,54 +456,56 @@
             if (dist < distMin) { distMin = dist; i = j; }
           }
         }
-        letras[i].celdas.push({ c, f, car: nivel[1], r1: Math.random(), r2: Math.random() });
+        celdas[i].push({ c, f, car: nivel[1], r1: Math.random(), r2: Math.random() });
       }
     }
 
-    // Canvas visible: mismo sitio que el texto, con el margen extra
-    m.dpr = dpr; m.celdaW = celdaW; m.celdaH = celdaH; m.mascara = mascara; m.sprites.clear();
-    const lz = m.lienzo;
-    lz.width = mascara.width; lz.height = mascara.height;
-    lz.style.width = W + 'px'; lz.style.height = H + 'px';
-    lz.style.left = (caja.left - cajaHost.left - host.clientLeft - ext) + 'px';
-    lz.style.top = (caja.top - cajaHost.top - host.clientTop - ext) + 'px';
-    m.medido = true;
+    return {
+      host, hacerRelativo, celdas, colores: medidas.map(d => d.color),
+      dpr, celdaW, celdaH, mascara, W, H,
+      left: caja.left - cajaHost.left - host.clientLeft - ext,
+      top: caja.top - cajaHost.top - host.clientTop - ext,
+    };
   }
 
-  function lienzoNoEn(m, host) { return m.lienzo.parentNode !== host; }
+  // Coloca el canvas visible en el mismo sitio que el texto, con el margen extra
+  function aplicarMosaico(m, d) {
+    if (!d) { m.medido = false; return; }
+    if (d.hacerRelativo) d.host.style.position = 'relative';
+    if (m.lienzo.parentNode !== d.host) d.host.append(m.lienzo);
+    m.anfitrion = d.host;
+    m.letras.forEach((l, i) => { l.celdas = d.celdas[i]; l.color = d.colores[i]; });
+    m.dpr = d.dpr; m.celdaW = d.celdaW; m.celdaH = d.celdaH; m.mascara = d.mascara;
+    const aw = Math.max(1, Math.round(d.celdaW * d.dpr));
+    const ah = Math.max(1, Math.round(d.celdaH * d.dpr));
+    m.atlas = crearAtlas(aw, ah, (c, x, y, car, color) => {
+      c.fillStyle = color;
+      c.font = `600 ${ah * 0.92}px ${FUENTE_MOSAICO}`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(car, x + aw / 2, y + ah / 2 + ah * 0.04);
+    });
+    const lz = m.lienzo;
+    lz.width = d.mascara.width; lz.height = d.mascara.height;
+    lz.style.width = d.W + 'px'; lz.style.height = d.H + 'px';
+    lz.style.left = d.left + 'px';
+    lz.style.top = d.top + 'px';
+    m.medido = true;
+  }
 
   // Cuando termina la animación se libera la memoria del canvas
   function liberarMosaico(m) {
     if (!m.medido) return;
     m.lienzo.width = 0; m.lienzo.height = 0;
-    m.mascara = null; m.sprites.clear(); m.medido = false;
+    m.mascara = null; m.atlas = null; m.medido = false;
     m.letras.forEach(l => { l.celdas = []; });
-  }
-
-  // Un carácter ya dibujado en una casilla (se reutiliza en cada fotograma)
-  function spriteMosaico(m, car, color) {
-    const clave = color + car;
-    let sp = m.sprites.get(clave);
-    if (!sp) {
-      const w = Math.max(1, Math.round(m.celdaW * m.dpr));
-      const h = Math.max(1, Math.round(m.celdaH * m.dpr));
-      sp = document.createElement('canvas');
-      sp.width = w; sp.height = h;
-      const c = sp.getContext('2d');
-      c.fillStyle = color;
-      c.font = `600 ${h * 0.92}px ${FUENTE_MOSAICO}`;
-      c.textAlign = 'center';
-      c.textBaseline = 'middle';
-      c.fillText(car, w / 2, h / 2 + h * 0.04);
-      m.sprites.set(clave, sp);
-    }
-    return sp;
   }
 
   // Dibuja un fotograma. Devuelve true mientras alguna letra siga animándose.
   function dibujarMosaico(m, ahora) {
     if (!m.medido) return false;
-    const { ctx, lienzo, dpr, celdaW, celdaH } = m;
+    const { ctx, lienzo, dpr, celdaW, celdaH, atlas } = m;
+    const aw = atlas.w, ah = atlas.h, fuente = atlas.lienzo;
     ctx.globalCompositeOperation = 'source-over';
     ctx.clearRect(0, 0, lienzo.width, lienzo.height);
     let activo = false;
@@ -486,15 +525,12 @@
       const s = l.span;
 
       if (p >= 1) {                                   // terminó: queda la letra real
-        if (s.textContent !== l.c) s.textContent = l.c;
+        verLetra(s, true);
         s._listo = true; s._glitch = false; l.anim = null;
         continue;
       }
       // La letra real se esconde mientras se forma el mosaico y vuelve cuando toca
-      const real = p >= f.letra;
-      const visible = real || p < f.oculta;
-      const quiere = visible ? l.c : VACIO;
-      if (s.textContent !== quiere) s.textContent = quiere;
+      verLetra(s, p >= f.letra || p < f.oculta);
 
       for (const k of l.celdas) {
         const edad = (p - k.r1 * f.forma) / .16;                       // la casilla aparece
@@ -506,7 +542,8 @@
         if (edad < 1) car = glifoAparicion(k.car, suavizar(edad));
         else if (fase > 0) car = glifoAparicion(k.car, 1 - fase);
         if (!car || car === VACIO || car === ' ') continue;
-        ctx.drawImage(spriteMosaico(m, car, l.color), Math.round(k.c * celdaW * dpr), Math.round(k.f * celdaH * dpr));
+        const [sx, sy] = atlas.hueco(l.color + car, car, l.color);
+        ctx.drawImage(fuente, sx, sy, aw, ah, Math.round(k.c * celdaW * dpr), Math.round(k.f * celdaH * dpr), aw, ah);
       }
     }
     // La máscara deja los caracteres solo dentro del perímetro de las letras
@@ -546,13 +583,23 @@
     m.letras.forEach((l, i) => {
       l.span._glitch = false;
       if (!m.medido) {                                // texto oculto o sin medidas: se muestra directamente
-        l.span.textContent = l.c; l.span._listo = true; return;
+        verLetra(l.span, true); l.span._listo = true; return;
       }
-      l.span.textContent = VACIO;
+      verLetra(l.span, false);
       l.span._listo = false;
       l.anim = { modo: 'aparicion', inicio: inicio + i * velocidad, dur: duracion };
     });
     if (m.medido) arrancarMosaicos();
+  }
+
+  // Varios textos que empiezan a la vez: se miden todos juntos y después arrancan.
+  // retardoDe(el, i) dice cuántos ms espera cada uno.
+  function decodificarVarios(els, retardoDe) {
+    if (!els.length) return;
+    const retardos = els.map(retardoDe);              // lecturas antes de escribir nada
+    const ms = els.map(el => el._mosaico || crearMosaico(el));
+    medirMosaicos(ms.filter(m => !m.medido));
+    els.forEach((el, i) => decodificar(el, retardos[i]));
   }
 
   // Al pasar el ratón, la letra se descompone en caracteres y se mantiene así mientras el puntero siga encima.
@@ -595,18 +642,20 @@
     if (window.innerWidth === tamanoPrevio) return;       // en móvil, la barra de direcciones no cuenta
     tamanoPrevio = window.innerWidth;
     clearTimeout(esperaTamano);
-    esperaTamano = setTimeout(() => mosaicos.forEach(m => { if (m.medido) medirMosaico(m); }), 200);
+    esperaTamano = setTimeout(() => medirMosaicos(mosaicos.filter(m => m.medido)), 200);
   });
 
   // Cada elemento se anima una sola vez, cuando entra en pantalla (como en aino.agency)
   const observador = new IntersectionObserver(entradas => {
+    const nuevos = [];
     for (const e of entradas) {
       if (!e.isIntersecting) continue;
       const el = e.target;
       observador.unobserve(el);
       el.classList.add('in');
-      if (!sinMovimiento && el.hasAttribute('data-decode')) decodificar(el, retardoCascada(el));
+      if (!sinMovimiento && el.hasAttribute('data-decode')) nuevos.push(el);
     }
+    decodificarVarios(nuevos, retardoCascada);
   }, { threshold: 0.2 });
 
   /* ---------- 3. Torbellino ---------- */
@@ -646,13 +695,17 @@
     const BRAZOS = 5;                                  // las corrientes en espiral que se ven en el huracán
     const GIRO_ESPIRAL = 2.4;                          // cuánto se retuerce de un extremo al otro (radianes por unidad de altura)
     const SIMBOLOS = '0123456789' + '0123456789' + '{}[]()<>;:=+-*/\\|&%$#@!?_~^' + 'abcdefnxuvtrsi';
-    const CELDA = 40;                                  // tamaño de cada carácter en el atlas
+    let CELDA = 0;                                     // tamaño de cada carácter en el atlas (px reales)
 
-    // Todos los caracteres se dibujan una vez en una tira y después solo se copian a su tamaño
+    // Todos los caracteres se dibujan una vez en una tira y después solo se copian a su tamaño.
+    // El atlas se hace del tamaño al que se van a ver los caracteres: así casi no hay que escalarlos,
+    // la copia es más rápida y se ven nítidos.
     const atlas = document.createElement('canvas');
-    atlas.width = CELDA * SIMBOLOS.length;
-    atlas.height = CELDA;
-    {
+    function pintarAtlas(celda) {
+      if (celda === CELDA) return;
+      CELDA = celda;
+      atlas.width = CELDA * SIMBOLOS.length;
+      atlas.height = CELDA;
       const c = atlas.getContext('2d');
       c.fillStyle = '#fff';
       c.font = `500 ${CELDA * 0.8}px ${FUENTE_MOSAICO}`;
@@ -660,6 +713,8 @@
       c.textBaseline = 'middle';
       for (let i = 0; i < SIMBOLOS.length; i++) c.fillText(SIMBOLOS[i], CELDA * i + CELDA / 2, CELDA / 2 + CELDA * 0.04);
     }
+    // Tamaño base de un carácter del código, en px de pantalla
+    const celdaBaseDe = ancho => 14.5 * 1.25 * Math.max(0.6, Math.min(1, ancho / 900)) * (ancho > 900 ? 1 : 1.35);
 
     function crearCodigo(total) {
       const lista = [];
@@ -701,6 +756,7 @@
       lienzo.width = Math.round(W * dpr);
       lienzo.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      pintarAtlas(Math.max(12, Math.ceil(celdaBaseDe(W) * 1.2 * dpr)));
       dibujar();
     }
 
@@ -723,8 +779,8 @@
       const giroBase = reloj * 0.55;
 
       // --- Código ---
-      ctx.imageSmoothingQuality = 'high';
-      const celdaBase = 14.5 * 1.25 * escala * (ancha ? 1 : 1.35);      // en móvil el código va algo más grande para que se lea
+      ctx.imageSmoothingQuality = 'low';                                // el atlas ya tiene el tamaño justo: no hace falta el filtro caro
+      const celdaBase = celdaBaseDe(W);                                 // en móvil el código va algo más grande para que se lea
       for (const c of codigo) {
         const u = (c.v0 + tiempo * c.vel) % 1;
         const bordes = suave(0, 0.12, u) * (1 - suave(0.88, 1, u));     // los extremos se deshacen
@@ -866,7 +922,7 @@
     // --- Rejilla de caracteres ---
     let cols = 0, filas = 0, cw = 8, ch = 16, dpr = 1, tam = 12;
     let celdas, prof, brillo;                          // código de carácter de cada casilla, profundidad y opacidad (0-255)
-    const sprites = new Map();
+    let atlas = null;                                  // todos los caracteres en una sola imagen
 
     function medir() {
       dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -881,24 +937,20 @@
       celdas = new Uint16Array(cols * filas);
       prof = new Float32Array(cols * filas);
       brillo = new Uint8Array(cols * filas).fill(255);
-      sprites.clear();
-    }
-
-    function sprite(cod) {
-      let sp = sprites.get(cod);
-      if (!sp) {
-        const w = Math.max(1, Math.round(cw * dpr)), h = Math.max(1, Math.round(ch * dpr));
-        sp = document.createElement('canvas');
-        sp.width = w; sp.height = h;
-        const c = sp.getContext('2d');
+      const w = Math.max(1, Math.round(cw * dpr)), h = Math.max(1, Math.round(ch * dpr));
+      atlas = crearAtlas(w, h, (c, x, y, cod) => {
         c.fillStyle = '#fff';
         c.font = `500 ${tam * dpr}px ${FUENTE_MOSAICO}`;
         c.textAlign = 'center';
         c.textBaseline = 'middle';
-        c.fillText(String.fromCharCode(cod), w / 2, h / 2 + h * 0.04);
-        sprites.set(cod, sp);
-      }
-      return sp;
+        c.fillText(String.fromCharCode(cod), x + w / 2, y + h / 2 + h * 0.04);
+      });
+    }
+
+    // Copia un carácter del atlas a su casilla
+    function pintarCaracter(cod, c, f) {
+      const [sx, sy] = atlas.hueco(cod, cod);
+      ctx.drawImage(atlas.lienzo, sx, sy, atlas.w, atlas.h, Math.round(c * cw * dpr), Math.round(f * ch * dpr), atlas.w, atlas.h);
     }
 
     // --- La figura: un reloj de arena acanalado y retorcido, dibujado con una escala de caracteres ---
@@ -907,7 +959,6 @@
     const costh = new Float32Array(NTH + 1), senth = new Float32Array(NTH + 1);
     for (let i = 0; i <= NTH; i++) { costh[i] = Math.cos(i / NTH * TAU); senth[i] = Math.sin(i / NTH * TAU); }
     const LUZ = (() => { const v = [-0.45, 0.6, -0.65]; const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); return v.map(x => x / n); })();
-    const pt = new Float32Array(9);
     const DIST = 3.4, ALTO = 1.15, R_TAPA = 0.72;
     let rotA = 1, rotB = 0, rotC = 1, rotD = 0, formaAct = 1, giroAct = 0;
 
@@ -918,22 +969,28 @@
       return 1 - (1 - R_TAPA) * u * u;
     }
 
-    // Punto de la superficie con la rotación ya aplicada. parche 0 = cuerpo, 1 y 2 = tapas
-    function punto(out, o, parche, i, a) {
-      const c = costh[i], sn = senth[i];
-      let x0, y0, z0;
+    // Puntos de una fila de la superficie, con la rotación ya aplicada. parche 0 = cuerpo, 1 y 2 = tapas.
+    // Cada punto sirve para dos filas (la suya y la anterior), así que se calcula una sola vez.
+    const filaA = new Float32Array((NTH + 1) * 3), filaB = new Float32Array((NTH + 1) * 3);
+    function calcularFila(out, parche, a) {
+      let r0, y0, t = 0;
       if (parche === 0) {
-        const t = -1 + a * (2 / NT);
-        const r = radio(Math.abs(t)) * formaAct * (1 + 0.16 * Math.cos(5 * (i / NTH * TAU + giroAct) + 3 * t));
-        x0 = r * c; z0 = r * sn; y0 = t * ALTO;
+        t = -1 + a * (2 / NT);
+        r0 = radio(Math.abs(t)) * formaAct;
+        y0 = t * ALTO;
       } else {
-        const r = (a / NC) * R_TAPA * formaAct;
-        x0 = r * c; z0 = r * sn; y0 = (parche === 1 ? 1 : -1) * ALTO;
+        r0 = (a / NC) * R_TAPA * formaAct;
+        y0 = (parche === 1 ? 1 : -1) * ALTO;
       }
-      const x1 = x0 * rotA + z0 * rotB, z1 = -x0 * rotB + z0 * rotA;                 // giro sobre su eje
-      out[o] = x1;
-      out[o + 1] = y0 * rotC - z1 * rotD;                                              // inclinación
-      out[o + 2] = y0 * rotD + z1 * rotC;
+      const yC = y0 * rotC, yD = y0 * rotD;
+      for (let i = 0, o = 0; i <= NTH; i++, o += 3) {
+        const r = parche === 0 ? r0 * (1 + 0.16 * Math.cos(5 * (i / NTH * TAU + giroAct) + 3 * t)) : r0;
+        const x0 = r * costh[i], z0 = r * senth[i];
+        const z1 = -x0 * rotB + z0 * rotA;                                             // giro sobre su eje
+        out[o] = x0 * rotA + z0 * rotB;
+        out[o + 1] = yC - z1 * rotD;                                                     // inclinación
+        out[o + 2] = yD + z1 * rotC;
+      }
     }
 
     function figura(forma, giro, inclina) {
@@ -945,23 +1002,25 @@
       // la figura cabe en alto y también en ancho (en vertical, en móvil)
       const escala = Math.min(filas * 0.33, cols * 0.4 / aspecto) * DIST;
       const cx = cols / 2, cy = filas / 2;
+      const nRampa = RAMPA_ESCENA.length;
       for (let parche = 0; parche < 3; parche++) {
         const n = parche === 0 ? NT : NC;
+        let fa = filaA, fb = filaB;
+        calcularFila(fa, parche, 0);
         for (let a = 0; a < n; a++) {
-          for (let i = 0; i < NTH; i++) {
-            punto(pt, 0, parche, i, a);
-            punto(pt, 3, parche, i + 1, a);
-            punto(pt, 6, parche, i, a + 1);
-            const z = pt[2] + DIST;
-            const col = Math.floor(cx + pt[0] * escala * aspecto / z);
-            const fila = Math.floor(cy - pt[1] * escala / z);
+          calcularFila(fb, parche, a + 1);
+          for (let i = 0, o = 0; i < NTH; i++, o += 3) {
+            const px = fa[o], py = fa[o + 1], pz = fa[o + 2];
+            const z = pz + DIST;
+            const col = Math.floor(cx + px * escala * aspecto / z);
+            const fila = Math.floor(cy - py * escala / z);
             if (col < 0 || col >= cols || fila < 0 || fila >= filas) continue;
             const k = fila * cols + col;
             const inv = 1 / z;
             if (inv <= prof[k]) continue;
-            // Normal = producto vectorial de las dos tangentes
-            const ux = pt[3] - pt[0], uy = pt[4] - pt[1], uz = pt[5] - pt[2];
-            const vx = pt[6] - pt[0], vy = pt[7] - pt[1], vz = pt[8] - pt[2];
+            // Normal = producto vectorial de las dos tangentes (hacia el punto de al lado y hacia la fila siguiente)
+            const ux = fa[o + 3] - px, uy = fa[o + 4] - py, uz = fa[o + 5] - pz;
+            const vx = fb[o] - px, vy = fb[o + 1] - py, vz = fb[o + 2] - pz;
             let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
             const nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
             nx /= nl; ny /= nl; nz /= nl;
@@ -969,8 +1028,9 @@
             const luz = Math.max(0, nx * LUZ[0] + ny * LUZ[1] + nz * LUZ[2]);
             const v = 0.22 * (-nz) + 0.78 * luz;                                        // los bordes salen más claros
             prof[k] = inv;
-            celdas[k] = RAMPA_ESCENA.charCodeAt(1 + Math.min(RAMPA_ESCENA.length - 2, Math.floor(v * (RAMPA_ESCENA.length - 1))));
+            celdas[k] = RAMPA_ESCENA.charCodeAt(1 + Math.min(nRampa - 2, Math.floor(v * (nRampa - 1))));
           }
+          const tmp = fa; fa = fb; fb = tmp;
         }
       }
     }
@@ -1022,9 +1082,9 @@
       const t = ahora - t0;
 
       // El ratón manda: a la derecha gira más rápido, arriba y abajo inclina
-      giroVel = lerp(giroVel, 0.35 + (raton.x - 0.5) * 2.8, 0.04);
+      giroVel = lerp(giroVel, 0.35 + (raton.x - 0.5) * 2.8, 1 - Math.pow(1 - 0.04, dt * 60));
       giro += giroVel * dt;
-      inclina = lerp(inclina, 0.05 + raton.y * 0.6, 0.05);
+      inclina = lerp(inclina, 0.05 + raton.y * 0.6, 1 - Math.pow(1 - 0.05, dt * 60));
 
       // La figura empieza como una línea de caracteres y se abre
       const forma = 0.02 + 0.98 * suaveSalida((t - 1000) / 1700);
@@ -1090,7 +1150,7 @@
           if (!cod || cod === 32) continue;
           const br = brillo[f * cols + c];
           if (br !== alfaActual) { ctx.globalAlpha = br / 255; alfaActual = br; }
-          ctx.drawImage(sprite(cod), Math.round(c * cw * dpr), Math.round(f * ch * dpr));
+          pintarCaracter(cod, c, f);
         }
       }
       ctx.globalAlpha = 1;
@@ -1127,7 +1187,7 @@
         const cod = celdas[f * cols + c];
         if (cod && cod !== 32) {
           ctx.globalAlpha = brillo[f * cols + c] / 255;
-          ctx.drawImage(sprite(cod), Math.round(c * cw * dpr), Math.round(f * ch * dpr));
+          pintarCaracter(cod, c, f);
         }
       }
       ctx.globalAlpha = 1;
@@ -1161,6 +1221,84 @@
     setInterval(pinta, 1000);
   }
 
+  /* ---------- 3d. Scroll suave ----------
+     Con ratón o trackpad la rueda ya no da saltos: la página se desliza hasta su sitio con inercia.
+     Los enlaces internos (#…) llevan a su sección con un movimiento suave en lugar de un salto.
+     En pantallas táctiles el scroll sigue siendo el del sistema, que ya es suave.
+     El teclado y la barra de scroll funcionan como siempre. */
+
+  const SUAVIDAD = 7;                                       // más alto = llega antes (por segundo)
+  const curvaEnlace = t => (t < .5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2);   // easeInOutQuart
+
+  function iniciarScrollSuave() {
+    if (sinMovimiento) return;
+    const raizHtml = document.documentElement;
+    const limitar = y => Math.max(0, Math.min(raizHtml.scrollHeight - window.innerHeight, y));
+    let actual = window.scrollY, objetivo = actual, escrito = actual;
+    let animando = false, previo = 0;
+    let viaje = null;                                       // { desde, hasta, inicio, dur } al seguir un enlace
+
+    const parar = () => { animando = false; viaje = null; };
+
+    function paso(ahora) {
+      if (!animando) return;
+      const dt = Math.min(0.05, Math.max(0, (ahora - previo) / 1000));
+      previo = ahora;
+      // Si algo más ha movido la página (teclado, barra de scroll, el dedo), se le deja hacer
+      if (Math.abs(window.scrollY - escrito) > 3) { parar(); return; }
+      if (viaje) {
+        const t = Math.min(1, (ahora - viaje.inicio) / viaje.dur);
+        actual = lerp(viaje.desde, viaje.hasta, curvaEnlace(t));
+        if (t >= 1) { viaje = null; objetivo = actual; }
+      } else {
+        actual += (objetivo - actual) * (1 - Math.exp(-dt * SUAVIDAD));
+        if (Math.abs(objetivo - actual) < 0.4) actual = objetivo;
+      }
+      window.scrollTo(0, actual);
+      escrito = window.scrollY;
+      if (!viaje && actual === objetivo) { animando = false; return; }
+      requestAnimationFrame(paso);
+    }
+
+    function arrancar() {
+      if (animando) return;
+      animando = true;
+      previo = performance.now();
+      requestAnimationFrame(paso);
+    }
+
+    // Rueda del ratón y trackpad
+    window.addEventListener('wheel', e => {
+      if (e.ctrlKey || e.defaultPrevented || raizHtml.classList.contains('cargando')) return;   // zoom o pantalla de entrada
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;                                     // gesto horizontal
+      e.preventDefault();
+      const factor = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? window.innerHeight : 1;     // líneas o páginas → px
+      if (!animando) { actual = objetivo = escrito = window.scrollY; }
+      if (viaje) { viaje = null; objetivo = actual; }                                          // la rueda manda sobre un enlace en curso
+      objetivo = limitar(objetivo + e.deltaY * factor);
+      arrancar();
+    }, { passive: false });
+
+    // Enlaces internos: viaje suave hasta la sección
+    document.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const id = decodeURIComponent(a.getAttribute('href').slice(1));
+      const destino = id && document.getElementById(id);
+      if (!destino) return;
+      e.preventDefault();
+      const desde = window.scrollY;
+      const hasta = limitar(destino.getBoundingClientRect().top + desde);
+      const distancia = Math.abs(hasta - desde);
+      if (distancia < 1) return;
+      actual = escrito = desde;
+      objetivo = hasta;
+      viaje = { desde, hasta, inicio: performance.now(), dur: Math.min(1900, 650 + distancia * 0.14) };
+      arrancar();
+      history.pushState(null, '', '#' + id);
+    });
+  }
+
   /* ---------- 4. Arranque ---------- */
 
   function iniciar() {
@@ -1172,7 +1310,7 @@
     if (nota) {
       const dias = Math.round(totalHoras / 24);
       const cuantos = NUMEROS[programas.length] || programas.length;
-      nota.textContent = `horas en ${cuantos} programas de diseño. Son ${dias} días seguidos, de día y de noche.`;
+      nota.textContent = `hores en ${cuantos} programes de disseny. Són ${dias} dies seguits, de dia i de nit.`;
     }
 
     // Barra de cada programa: su largo es la parte de horas respecto al que más tiene
@@ -1201,6 +1339,7 @@
       $$('[data-reveal]').forEach(el => observador.observe(el));
     };
     iniciarReloj();
+    iniciarScrollSuave();
     const entrada = iniciarEntrada();
     if (entrada) entrada.then(empezar); else empezar();
 
@@ -1218,7 +1357,7 @@
         cabecera.setAttribute('aria-expanded', String(abrir));
         // El detalle se decodifica al abrirse, un dato detrás de otro
         if (abrir && !sinMovimiento) {
-          $$('dt, dd', fila).forEach((el, i) => decodificar(el, i * 90));
+          decodificarVarios($$('dt, dd', fila), (el, i) => i * 90);
         }
       });
     });
