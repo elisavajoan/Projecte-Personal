@@ -1,4 +1,4 @@
-let otto
+let david
 let joan
 
 async function setup() {
@@ -23,7 +23,7 @@ function draw() {
     let h3 = row.get(0)
     let l3 = row.get(1)
     let horas3 = map(float(h3), 0, 24, 0, width)
-    fill(1000, 1000, 1000)
+    fill(255, 255, 255)
     rect(horas3, height / 2, 3, -float(l3))
   }
 }

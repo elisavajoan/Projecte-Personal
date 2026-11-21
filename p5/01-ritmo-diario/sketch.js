@@ -9,7 +9,7 @@ function setup() {
 
 function draw() {
   background( 112, 0, 65, 40);
-  for( let indice = 0; indice < horas.lenght; indice=indice+1 ){
+  for( let indice = 0; indice < horas.length; indice=indice+1 ){
     print(indice)
     let tiempo = map(horas[indice], 0, 24, 0, 400)
     circle(tiempo, 200, caracteres[indice])
