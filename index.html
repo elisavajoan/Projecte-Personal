@@ -7,7 +7,7 @@
   <meta name="description" content="Les hores que un dissenyador dedica a dominar els programes de disseny, programa a programa.">
 
   <!-- El nombre tiene que coincidir con el del archivo: style.css -->
-  <link rel="stylesheet" href="style.css?v=20261121d">
+  <link rel="stylesheet" href="style.css?v=20261121f">
 
   <!-- Avisa al CSS de que hay JavaScript, para preparar las animaciones -->
   <script>document.documentElement.classList.add('js');</script>
@@ -33,12 +33,16 @@
     </nav>
   </header>
 
+  <!-- ============ Reloj de arena que acompaña el scroll ============
+       Abajo a la derecha. Gira al hacer scroll y la arena cae a medida que avanzas (lo dibuja script.js). -->
+  <canvas class="reloj-scroll" aria-hidden="true"></canvas>
+
   <main>
 
     <!-- ============ PANTALLA 1 · Portada (igual que el Figma) ============ -->
     <section class="banda banda--oscura portada" id="portada">
-      <!-- Título en dos líneas fijas, grande, arriba a la izquierda -->
-      <h1 data-decode data-velocidad="28" data-duracion="1000"><span class="linea">Les Hores</span> <span class="linea">En El Disseny</span></h1>
+      <!-- Título en dos líneas fijas, grande, arriba a la izquierda. El nombre del proyecto sigue en la entrada y en el pie. -->
+      <h1 data-decode data-velocidad="28" data-duracion="1000"><span class="linea">La Importància</span> <span class="linea">Del Temps</span></h1>
 
       <!-- Abajo a la izquierda: los cinco referentes. Cada enlace salta a su pantalla (las de después de los datos). -->
       <nav class="referentes" aria-label="Referents del projecte">
@@ -329,6 +333,6 @@
   </footer>
 
   <!-- El JavaScript va al final, cuando la página ya está cargada -->
-  <script src="script.js?v=20261121d"></script>
+  <script src="script.js?v=20261121f"></script>
 </body>
 </html>

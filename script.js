@@ -902,64 +902,20 @@
     return Math.max(0, cascada.t0 + (fila / (cascada.filas + cascada.banda)) * cascada.ms - performance.now());
   }
 
-  function iniciarEntrada() {
-    const raiz = $('#entrada');
-    if (!raiz) return null;
-    if (location.hash) { raiz.remove(); return null; }     // un enlace directo a una sección va sin pantalla de entrada
-
-    const lienzo = $('.entrada__lienzo', raiz);
-    const boton = $('.entrada__boton', raiz);
-    const ctx = lienzo.getContext('2d');
-    const raizHtml = document.documentElement;
-    raiz.dataset.activa = '';
-    raizHtml.classList.add('cargando');
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    window.scrollTo(0, 0);
-
-    let resolver;
-    const clic = new Promise(ok => { resolver = ok; });
-
-    // --- Rejilla de caracteres ---
-    let cols = 0, filas = 0, cw = 8, ch = 16, dpr = 1, tam = 12;
-    let celdas, prof, brillo;                          // código de carácter de cada casilla, profundidad y opacidad (0-255)
-    let atlas = null;                                  // todos los caracteres en una sola imagen
-
-    function medir() {
-      dpr = Math.min(2, window.devicePixelRatio || 1);
-      const W = window.innerWidth, H = window.innerHeight;
-      tam = Math.max(10, Math.min(15, W / 120));
-      ctx.font = `500 ${tam}px ${FUENTE_MOSAICO}`;
-      cw = ctx.measureText('M').width + tam * 0.045;
-      ch = tam * 1.32;
-      cols = Math.floor(W / cw);
-      filas = Math.floor(H / ch);
-      lienzo.width = Math.round(W * dpr); lienzo.height = Math.round(H * dpr);
-      celdas = new Uint16Array(cols * filas);
-      prof = new Float32Array(cols * filas);
-      brillo = new Uint8Array(cols * filas).fill(255);
-      const w = Math.max(1, Math.round(cw * dpr)), h = Math.max(1, Math.round(ch * dpr));
-      atlas = crearAtlas(w, h, (c, x, y, cod) => {
-        c.fillStyle = '#fff';
-        c.font = `500 ${tam * dpr}px ${FUENTE_MOSAICO}`;
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.fillText(String.fromCharCode(cod), x + w / 2, y + h / 2 + h * 0.04);
-      });
-    }
-
-    // Copia un carácter del atlas a su casilla
-    function pintarCaracter(cod, c, f) {
-      const [sx, sy] = atlas.hueco(cod, cod);
-      ctx.drawImage(atlas.lienzo, sx, sy, atlas.w, atlas.h, Math.round(c * cw * dpr), Math.round(f * ch * dpr), atlas.w, atlas.h);
-    }
-
-    // --- La figura: un reloj de arena acanalado y retorcido, dibujado con una escala de caracteres ---
-    // Dos parches de superficie: el cuerpo (de arriba abajo) y las dos tapas planas.
-    const NT = 170, NTH = 320, NC = 36;
+  /* El reloj de arena de caracteres: acanalado y retorcido, dibujado en una rejilla con una escala
+     de caracteres (de claro a denso según la luz). Lo usan la pantalla de entrada y el reloj que
+     acompaña el scroll. NT, NTH y NC = cuántos puntos se calculan (más = más detalle).
+     dibujar(rejilla, forma, giro, inclina, arena):
+       rejilla = { cols, filas, cw, ch, celdas, prof [, arena] }
+       arena   = 0..1 (opcional): cuánta arena ha caído. Sin arena, el reloj es macizo. */
+  function crearRelojArena(NT, NTH, NC) {
     const costh = new Float32Array(NTH + 1), senth = new Float32Array(NTH + 1);
     for (let i = 0; i <= NTH; i++) { costh[i] = Math.cos(i / NTH * TAU); senth[i] = Math.sin(i / NTH * TAU); }
     const LUZ = (() => { const v = [-0.45, 0.6, -0.65]; const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); return v.map(x => x / n); })();
     const DIST = 3.4, ALTO = 1.15, R_TAPA = 0.72;
+    const ARENA_MAX = 0.8;                          // hasta qué altura llega la arena en cada mitad
+    const CHORRO = ':|!:.|';                        // la arena que cae por el cuello
+    const nRampa = RAMPA_ESCENA.length;
     let rotA = 1, rotB = 0, rotC = 1, rotD = 0, formaAct = 1, giroAct = 0;
 
     // Radio según la altura (s = 0 en el cuello, 1 en las tapas): cuello fino, panza a media altura
@@ -993,8 +949,11 @@
       }
     }
 
-    function figura(forma, giro, inclina) {
-      celdas.fill(0); prof.fill(0); brillo.fill(255);
+    function dibujar(rejilla, forma, giro, inclina, arena) {
+      const { cols, filas, cw, ch, celdas, prof } = rejilla;
+      const mascara = rejilla.arena;
+      celdas.fill(0); prof.fill(0);
+      if (mascara) mascara.fill(0);
       rotA = Math.cos(giro * 0.35); rotB = Math.sin(giro * 0.35);
       rotC = Math.cos(inclina); rotD = Math.sin(inclina);
       formaAct = forma; giroAct = giro;
@@ -1002,13 +961,25 @@
       // la figura cabe en alto y también en ancho (en vertical, en móvil)
       const escala = Math.min(filas * 0.33, cols * 0.4 / aspecto) * DIST;
       const cx = cols / 2, cy = filas / 2;
-      const nRampa = RAMPA_ESCENA.length;
+      const conArena = arena != null;
+      const nivelArriba = conArena ? ARENA_MAX * (1 - arena) : 0;     // arriba: del cuello hacia arriba
+      const nivelAbajo = conArena ? -1 + ARENA_MAX * arena : -1;      // abajo: desde la base hacia arriba
       for (let parche = 0; parche < 3; parche++) {
         const n = parche === 0 ? NT : NC;
         let fa = filaA, fb = filaB;
         calcularFila(fa, parche, 0);
         for (let a = 0; a < n; a++) {
           calcularFila(fb, parche, a + 1);
+          // ¿Esta fila está llena de arena?
+          let llena = false;
+          if (conArena) {
+            if (parche === 0) {
+              const t = -1 + a * (2 / NT);
+              llena = (t >= 0 && t <= nivelArriba) || (t < 0 && t <= nivelAbajo);
+            } else if (parche === 2) {
+              llena = arena > 0.02;
+            }
+          }
           for (let i = 0, o = 0; i < NTH; i++, o += 3) {
             const px = fa[o], py = fa[o + 1], pz = fa[o + 2];
             const z = pz + DIST;
@@ -1026,13 +997,197 @@
             nx /= nl; ny /= nl; nz /= nl;
             if (nz > 0) { nx = -nx; ny = -ny; nz = -nz; }                              // la cara que mira a la cámara
             const luz = Math.max(0, nx * LUZ[0] + ny * LUZ[1] + nz * LUZ[2]);
-            const v = 0.22 * (-nz) + 0.78 * luz;                                        // los bordes salen más claros
+            let v = 0.22 * (-nz) + 0.78 * luz;                                          // los bordes salen más claros
+            // Con arena: el cristal vacío se dibuja con caracteres finos y la arena con los densos
+            if (conArena) v = llena ? 0.5 + 0.5 * v : v * 0.34;
             prof[k] = inv;
             celdas[k] = RAMPA_ESCENA.charCodeAt(1 + Math.min(nRampa - 2, Math.floor(v * (nRampa - 1))));
+            if (mascara) mascara[k] = llena ? 1 : 0;
           }
           const tmp = fa; fa = fb; fb = tmp;
         }
       }
+
+      // El chorro de arena que cae por el cuello, por delante del cristal vacío
+      if (conArena && arena > 0.005 && arena < 0.995) {
+        const pasos = Math.ceil(filas * 1.5);
+        for (let j = 0; j <= pasos; j++) {
+          const t = (j / pasos) * nivelAbajo;                           // de 0 (cuello) hasta la arena de abajo
+          const y0 = t * ALTO;
+          const py = y0 * rotC, z = y0 * rotD + DIST;
+          const col = Math.floor(cx);
+          const fila = Math.floor(cy - py * escala / z);
+          if (fila < 0 || fila >= filas) continue;
+          const k = fila * cols + col;
+          if (mascara && mascara[k]) continue;
+          celdas[k] = CHORRO.charCodeAt(Math.floor(Math.random() * CHORRO.length));
+        }
+      }
+    }
+
+    return { dibujar };
+  }
+
+  /* ---------- 3e. Reloj de arena que acompaña el scroll ----------
+     El mismo reloj de arena de la entrada, en pequeño, arriba a la izquierda (en la cabecera,
+     donde iría un logo). Gira al hacer scroll
+     (más rápido cuanto más deprisa bajas; hacia atrás si subes) y la arena va cayendo a medida
+     que avanzas: arriba del todo de la página está lleno y al llegar al final ya ha caído toda. */
+
+  function iniciarRelojScroll() {
+    const lienzo = $('.reloj-scroll');
+    if (!lienzo) return;
+    const ctx = lienzo.getContext('2d');
+    const reloj = crearRelojArena(64, 120, 14);
+    const raizHtml = document.documentElement;
+    let rejilla = null, atlas = null, dpr = 1;
+
+    function medir() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      const pequeno = window.innerWidth <= 720;
+      const tam = pequeno ? 3.6 : Math.max(4.5, Math.min(6.5, window.innerWidth * 0.0038));
+      const cols = 22, filas = 15;
+      ctx.font = `600 ${tam}px ${FUENTE_MOSAICO}`;
+      const cw = ctx.measureText('M').width + tam * 0.045;
+      const ch = tam * 1.25;
+      const W = cols * cw, H = filas * ch;
+      lienzo.width = Math.round(W * dpr); lienzo.height = Math.round(H * dpr);
+      lienzo.style.width = W + 'px'; lienzo.style.height = H + 'px';
+      rejilla = {
+        cols, filas, cw, ch,
+        celdas: new Uint16Array(cols * filas), prof: new Float32Array(cols * filas), arena: new Uint8Array(cols * filas),
+      };
+      const w = Math.max(1, Math.round(cw * dpr)), h = Math.max(1, Math.round(ch * dpr));
+      atlas = crearAtlas(w, h, (c, x, y, cod) => {
+        c.fillStyle = '#fff';
+        c.font = `600 ${tam * dpr}px ${FUENTE_MOSAICO}`;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(String.fromCharCode(cod), x + w / 2, y + h / 2 + h * 0.04);
+      });
+    }
+
+    function pintar(giro, inclina, arena) {
+      reloj.dibujar(rejilla, 1, giro, inclina, arena);
+      const { cols, filas, cw, ch, celdas } = rejilla;
+      ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+      for (let f = 0; f < filas; f++) {
+        for (let c = 0; c < cols; c++) {
+          const cod = celdas[f * cols + c];
+          if (!cod || cod === 32) continue;
+          const [sx, sy] = atlas.hueco(cod, cod);
+          ctx.drawImage(atlas.lienzo, sx, sy, atlas.w, atlas.h, Math.round(c * cw * dpr), Math.round(f * ch * dpr), atlas.w, atlas.h);
+        }
+      }
+    }
+
+    // Parte de la página recorrida: 0 arriba, 1 al final
+    const recorrido = () => {
+      const max = raizHtml.scrollHeight - window.innerHeight;
+      return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    };
+
+    medir();
+    let tamanoPrevio = window.innerWidth;
+    window.addEventListener('resize', () => {
+      if (window.innerWidth === tamanoPrevio) return;
+      tamanoPrevio = window.innerWidth;
+      medir();
+      if (sinMovimiento) pintar(0.6, 0.45, recorrido());
+    });
+
+    if (sinMovimiento) {
+      // Sin movimiento: el reloj no gira; solo cambia la arena cuando haces scroll
+      let pendiente = false;
+      const repintar = () => { pendiente = false; pintar(0.6, 0.45, recorrido()); };
+      window.addEventListener('scroll', () => { if (!pendiente) { pendiente = true; requestAnimationFrame(repintar); } }, { passive: true });
+      repintar();
+      lienzo.classList.add('visible');
+      return;
+    }
+
+    let giro = 0, giroVel = 0.25, inclina = 0.4, arena = recorrido();
+    let previo = performance.now(), yPrevio = window.scrollY, velocidad = 0;
+    function cuadro(ahora) {
+      const dt = Math.min(0.05, Math.max(0.001, (ahora - previo) / 1000));
+      previo = ahora;
+      const y = window.scrollY;
+      // Velocidad del scroll (px/s), suavizada
+      velocidad = lerp(velocidad, (y - yPrevio) / dt, 1 - Math.exp(-dt * 10));
+      yPrevio = y;
+      const v = Math.max(-1, Math.min(1, velocidad / 2500));
+      // Quieto gira muy despacio; con el scroll se acelera, y al subir gira al revés
+      giroVel = lerp(giroVel, 0.25 + v * 7, 1 - Math.exp(-dt * 4));
+      giro += giroVel * dt;
+      // Al bajar deprisa se inclina un poco, como si lo arrastraras
+      inclina = lerp(inclina, 0.4 + v * 0.3, 1 - Math.exp(-dt * 5));
+      // La arena sigue a la parte recorrida, con un poco de retraso: cae
+      arena = lerp(arena, recorrido(), 1 - Math.exp(-dt * 3));
+      pintar(giro, inclina, arena);
+      requestAnimationFrame(cuadro);
+    }
+    requestAnimationFrame(cuadro);
+    lienzo.classList.add('visible');
+  }
+
+  function iniciarEntrada() {
+    const raiz = $('#entrada');
+    if (!raiz) return null;
+    if (location.hash) { raiz.remove(); return null; }     // un enlace directo a una sección va sin pantalla de entrada
+
+    const lienzo = $('.entrada__lienzo', raiz);
+    const boton = $('.entrada__boton', raiz);
+    const ctx = lienzo.getContext('2d');
+    const raizHtml = document.documentElement;
+    raiz.dataset.activa = '';
+    raizHtml.classList.add('cargando');
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
+    let resolver;
+    const clic = new Promise(ok => { resolver = ok; });
+
+    // --- Rejilla de caracteres ---
+    let cols = 0, filas = 0, cw = 8, ch = 16, dpr = 1, tam = 12;
+    let celdas, prof, brillo;                          // código de carácter de cada casilla, profundidad y opacidad (0-255)
+    let rejilla = null;
+    let atlas = null;                                  // todos los caracteres en una sola imagen
+
+    function medir() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      const W = window.innerWidth, H = window.innerHeight;
+      tam = Math.max(10, Math.min(15, W / 120));
+      ctx.font = `500 ${tam}px ${FUENTE_MOSAICO}`;
+      cw = ctx.measureText('M').width + tam * 0.045;
+      ch = tam * 1.32;
+      cols = Math.floor(W / cw);
+      filas = Math.floor(H / ch);
+      lienzo.width = Math.round(W * dpr); lienzo.height = Math.round(H * dpr);
+      celdas = new Uint16Array(cols * filas);
+      prof = new Float32Array(cols * filas);
+      brillo = new Uint8Array(cols * filas).fill(255);
+      rejilla = { cols, filas, cw, ch, celdas, prof };
+      const w = Math.max(1, Math.round(cw * dpr)), h = Math.max(1, Math.round(ch * dpr));
+      atlas = crearAtlas(w, h, (c, x, y, cod) => {
+        c.fillStyle = '#fff';
+        c.font = `500 ${tam * dpr}px ${FUENTE_MOSAICO}`;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(String.fromCharCode(cod), x + w / 2, y + h / 2 + h * 0.04);
+      });
+    }
+
+    // Copia un carácter del atlas a su casilla
+    function pintarCaracter(cod, c, f) {
+      const [sx, sy] = atlas.hueco(cod, cod);
+      ctx.drawImage(atlas.lienzo, sx, sy, atlas.w, atlas.h, Math.round(c * cw * dpr), Math.round(f * ch * dpr), atlas.w, atlas.h);
+    }
+
+    // --- La figura: el reloj de arena (ver crearRelojArena) ---
+    const reloj = crearRelojArena(170, 320, 36);
+    function figura(forma, giro, inclina) {
+      brillo.fill(255);
+      reloj.dibujar(rejilla, forma, giro, inclina);
     }
 
     // --- Textos sobre la rejilla ---
@@ -1337,6 +1492,7 @@
     const empezar = () => {
       textos.filter(el => !el.hasAttribute('data-manual')).forEach(el => observador.observe(el));
       $$('[data-reveal]').forEach(el => observador.observe(el));
+      iniciarRelojScroll();
     };
     iniciarReloj();
     iniciarScrollSuave();
