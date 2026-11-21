@@ -147,6 +147,25 @@ body {
   --linea: rgba(0, 0, 0, .22);
 }
 
+/* Reloj de arena que acompaña el scroll: fijo arriba a la izquierda, en la franja de la cabecera
+   (donde iría un logo), alineado con el título de la portada. Como la cabecera, se ve blanco
+   sobre negro y negro sobre blanco. Aparece al entrar en la web. */
+.reloj-scroll {
+  position: fixed;
+  top: .5rem;
+  left: var(--margen);
+  z-index: 10;
+  pointer-events: none;
+  mix-blend-mode: difference;
+  opacity: 0;
+  transition: opacity 1.2s ease .6s;
+}
+.reloj-scroll.visible { opacity: 1; }
+html.cargando .reloj-scroll { opacity: 0; }
+@media (min-width: 1000px) {
+  .reloj-scroll { top: .9vw; left: 1.345vw; }     /* el mismo margen que el título del Figma */
+}
+
 /* =========================================================
    ANIMACIÓN DE TEXTO · "decodificado"
    Como en aino.agency: cada letra parte en blanco y pasa por símbolos,
