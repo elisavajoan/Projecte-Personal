@@ -834,7 +834,6 @@
      hasta hacer clic. Al hacer clic, la figura se deshace de arriba abajo y la portada
      se va formando detrás, en cascada. */
 
-  const RAMPA_ESCENA = ' .-:/+=<>!?I73254689ON';   // de más claro a más denso
   const ONDA_MS = 1900;                            // lo que tarda el frente de la cascada en cruzar la pantalla
   const ONDA_BANDA = 14;                           // filas de caracteres sueltos que van delante del frente
   let cascada = null;                              // { t0, ms, filas, ch, banda } mientras dura la cascada
@@ -883,6 +882,7 @@
       brillo = new Uint8Array(cols * filas).fill(255);
       sprites.clear();
       medirCorredor();
+      crearHuracan();
     }
 
     function sprite(cod) {
@@ -902,76 +902,65 @@
       return sp;
     }
 
-    // --- La figura: un reloj de arena acanalado y retorcido, dibujado con una escala de caracteres ---
-    // Dos parches de superficie: el cuerpo (de arriba abajo) y las dos tapas planas.
-    const NT = 170, NTH = 320, NC = 36;
-    const costh = new Float32Array(NTH + 1), senth = new Float32Array(NTH + 1);
-    for (let i = 0; i <= NTH; i++) { costh[i] = Math.cos(i / NTH * TAU); senth[i] = Math.sin(i / NTH * TAU); }
-    const LUZ = (() => { const v = [-0.45, 0.6, -0.65]; const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); return v.map(x => x / n); })();
-    const pt = new Float32Array(9);
-    const DIST = 3.4, ALTO = 1.15, R_TAPA = 0.72;
-    let rotA = 1, rotB = 0, rotC = 1, rotD = 0, formaAct = 1, giroAct = 0;
+    // --- El huracán: la imagen de satélite de un huracán, hecha con miles de caracteres de código ---
+    // Brazos en espiral vistos desde arriba que giran y se van cerrando hacia el ojo, donde está el corredor.
+    // Cada partícula entra por el borde, avanza por su brazo y se apaga al llegar a la pared del ojo; deja
+    // una estela de caracteres por detrás, y así los brazos se leen como cintas que se enroscan.
+    const BRAZOS_H = 2;                                // brazos en espiral
+    const ESPIRAL_H = 4.6;                             // cuánto se enroscan del borde al ojo (radianes)
+    const TRAZO = 11, PASO_TRAZO = 0.005;
+    const CODIGO_H = '0123456789' + '0123456789' + '{}[]()<>;:=+-*/\\|&%$#@!?_~^' + 'abcdefnxuvtrsi';
+    let nH = 0, hV0, hVel, hBrazo, hAncho, hBri, hRitmo, hSem;
 
-    // Radio según la altura (s = 0 en el cuello, 1 en las tapas): cuello fino, panza a media altura
-    function radio(s) {
-      if (s < 0.5) return 0.1 + 0.9 * Math.pow(Math.sin(s / 0.5 * Math.PI / 2), 1.2);
-      const u = (s - 0.5) / 0.5;
-      return 1 - (1 - R_TAPA) * u * u;
-    }
-
-    // Punto de la superficie con la rotación ya aplicada. parche 0 = cuerpo, 1 y 2 = tapas
-    function punto(out, o, parche, i, a) {
-      const c = costh[i], sn = senth[i];
-      let x0, y0, z0;
-      if (parche === 0) {
-        const t = -1 + a * (2 / NT);
-        const r = radio(Math.abs(t)) * formaAct * (1 + 0.16 * Math.cos(5 * (i / NTH * TAU + giroAct) + 3 * t));
-        x0 = r * c; z0 = r * sn; y0 = t * ALTO;
-      } else {
-        const r = (a / NC) * R_TAPA * formaAct;
-        x0 = r * c; z0 = r * sn; y0 = (parche === 1 ? 1 : -1) * ALTO;
+    function crearHuracan() {
+      nH = Math.max(2500, Math.min(9000, Math.round(cols * filas * 1.0)));
+      hV0 = new Float32Array(nH); hVel = new Float32Array(nH); hBrazo = new Float32Array(nH);
+      hAncho = new Float32Array(nH); hBri = new Float32Array(nH); hRitmo = new Float32Array(nH);
+      hSem = new Uint16Array(nH);
+      for (let i = 0; i < nH; i++) {
+        const dev = (Math.random() + Math.random() - 1) * 0.5;        // separación respecto al centro del brazo
+        hV0[i] = Math.random();
+        hVel[i] = 1 / (11 + Math.random() * 7);                       // lo que avanza hacia el ojo por segundo
+        hBrazo[i] = (i % BRAZOS_H) * TAU / BRAZOS_H + dev;
+        hAncho[i] = 1 - Math.abs(dev) / 0.5 * 0.55;                   // el centro del brazo es más denso y claro
+        hBri[i] = 0.65 + Math.random() * 0.35;
+        hRitmo[i] = 0.4 + Math.random() * 1.6;                        // veces por segundo que cambia de carácter
+        hSem[i] = Math.floor(Math.random() * 65536);
       }
-      const x1 = x0 * rotA + z0 * rotB, z1 = -x0 * rotB + z0 * rotA;                 // giro sobre su eje
-      out[o] = x1;
-      out[o + 1] = y0 * rotC - z1 * rotD;                                              // inclinación
-      out[o + 2] = y0 * rotD + z1 * rotC;
     }
 
-    function figura(forma, giro, inclina) {
+    // forma: 0 (un punto) → 1 (el huracán abierto); giro e inclina en radianes; seg = segundos
+    function huracan(forma, giro, inclina, seg) {
       celdas.fill(0); prof.fill(0); brillo.fill(255);
-      rotA = Math.cos(giro * 0.35); rotB = Math.sin(giro * 0.35);
-      rotC = Math.cos(inclina); rotD = Math.sin(inclina);
-      formaAct = forma; giroAct = giro;
-      const aspecto = ch / cw;
-      // la figura cabe en alto y también en ancho (en vertical, en móvil)
-      const escala = Math.min(filas * 0.33, cols * 0.4 / aspecto) * DIST;
-      const cx = cols / 2, cy = filas / 2;
-      for (let parche = 0; parche < 3; parche++) {
-        const n = parche === 0 ? NT : NC;
-        for (let a = 0; a < n; a++) {
-          for (let i = 0; i < NTH; i++) {
-            punto(pt, 0, parche, i, a);
-            punto(pt, 3, parche, i + 1, a);
-            punto(pt, 6, parche, i, a + 1);
-            const z = pt[2] + DIST;
-            const col = Math.floor(cx + pt[0] * escala * aspecto / z);
-            const fila = Math.floor(cy - pt[1] * escala / z);
-            if (col < 0 || col >= cols || fila < 0 || fila >= filas) continue;
-            const k = fila * cols + col;
-            const inv = 1 / z;
-            if (inv <= prof[k]) continue;
-            // Normal = producto vectorial de las dos tangentes
-            const ux = pt[3] - pt[0], uy = pt[4] - pt[1], uz = pt[5] - pt[2];
-            const vx = pt[6] - pt[0], vy = pt[7] - pt[1], vz = pt[8] - pt[2];
-            let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
-            const nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
-            nx /= nl; ny /= nl; nz /= nl;
-            if (nz > 0) { nx = -nx; ny = -ny; nz = -nz; }                              // la cara que mira a la cámara
-            const luz = Math.max(0, nx * LUZ[0] + ny * LUZ[1] + nz * LUZ[2]);
-            const v = 0.22 * (-nz) + 0.78 * luz;                                        // los bordes salen más claros
-            prof[k] = inv;
-            celdas[k] = RAMPA_ESCENA.charCodeAt(1 + Math.min(RAMPA_ESCENA.length - 2, Math.floor(v * (RAMPA_ESCENA.length - 1))));
-          }
+      const W = cols * cw, H = filas * ch;
+      const cx = W / 2, cy = H * 0.49;
+      const achatar = 1 - 0.25 * Math.min(1, Math.max(0, (inclina - 0.05) / 0.6));   // el ratón arriba/abajo lo inclina
+      const Rx = W * 0.54 * forma, Ry = H * 0.58 * achatar * forma;
+      const r0 = Math.min(0.7, Math.max(0.28, corL * 0.40 / Math.max(1, H * 0.58 * achatar)));   // el ojo deja sitio al corredor
+      const giroBase = -giro * 0.9;
+      for (let i = 0; i < nH; i++) {
+        const wCab = (hV0[i] + seg * hVel[i]) % 1;
+        const cambio = Math.floor(seg * hRitmo[i]);
+        for (let j = 0; j < TRAZO; j++) {
+          const w = wCab - j * PASO_TRAZO;                                  // 0 en el borde, 1 en el ojo
+          if (w < 0) break;
+          const borde = suave(0, 0.1, w) * (1 - suave(0.85, 1, w));
+          if (borde < 0.03) continue;
+          const r = lerp(1, r0, w);
+          const ang = hBrazo[i] - ESPIRAL_H * w + giroBase;
+          const px = cx + Math.cos(ang) * r * Rx, py = cy + Math.sin(ang) * r * Ry;
+          const col = Math.floor(px / cw), fila = Math.floor(py / ch);
+          if (col < 0 || col >= cols || fila < 0 || fila >= filas) continue;
+          const k = fila * cols + col;
+          const cola = Math.pow(1 - j / TRAZO, 1.3);
+          // más claro hacia el ojo; arriba y abajo se apaga para dejar limpios los textos
+          const alfa = hBri[i] * hAncho[i] * (0.55 + 0.45 * w) * borde * cola * suave(1, 4, fila) * suave(1, 4, filas - 1 - fila);
+          if (alfa <= prof[k]) continue;                                    // en cada casilla manda la más clara
+          const nivel = Math.round(alfa * 7);                               // pocos niveles de gris: dibuja más rápido
+          if (nivel < 1) continue;
+          prof[k] = alfa;
+          brillo[k] = Math.round(nivel / 7 * 255);
+          celdas[k] = CODIGO_H.charCodeAt(((hSem[i] + (cambio + j) * 2654435761) >>> 0) % CODIGO_H.length);
         }
       }
     }
@@ -979,40 +968,23 @@
     // --- El corredor: una silueta de persona corriendo, formada con caracteres dentro del código ---
     // Se dibuja como un esqueleto con ciclo de carrera (piernas y brazos al revés, rebote al pisar)
     // en un canvas pequeño, y cada casilla de la rejilla que cae dentro de la silueta se rellena con
-    // caracteres densos. Un hueco alrededor lo separa del código que tiene detrás.
+    // caracteres densos. Un hueco alrededor lo separa del código que tiene detrás (el ojo del huracán).
     const ESC_COR = 0.25;
     const cvCor = document.createElement('canvas');
     const cCor = cvCor.getContext('2d', { willReadFrequently: true });
     let corL = 0, corX = 0, corY = 0, corW = 0, corH = 0;
-    let alturaA = new Float32Array(0), alturaB = new Float32Array(0);
+    let masc = new Uint8Array(0);
     const CICLO_CARRERA = 0.8;                         // segundos que dura una zancada completa
-    const LUZ_COR = (() => { const v = [-0.55, -0.65, 0.55]; const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); return v.map(x => x / n); })();
+    const LLENO = ['N', 'N', 'N', 'N', 'M', '8', '0'].map(c => c.charCodeAt(0));
 
     function medirCorredor() {
-      corL = Math.min(filas * ch * 0.66, cols * cw * 0.72);   // altura del corredor en px
+      corL = Math.min(filas * ch * 0.62, cols * cw * 0.7);   // altura del corredor en px
       corX = cols * cw / 2;                                    // posición de la cadera
       corY = filas * ch * 0.45;
       corW = Math.ceil(corL * 1.5 * ESC_COR);
       corH = Math.ceil(corL * 1.25 * ESC_COR);
       cvCor.width = corW; cvCor.height = corH;
-      alturaA = new Float32Array(corW * corH);
-      alturaB = new Float32Array(corW * corH);
-    }
-
-    // Desenfoque de caja en una dirección (paso = 1 horizontal, paso = ancho vertical)
-    function desenfoque(src, dst, ancho, alto, r, horizontal) {
-      const largo = horizontal ? ancho : alto, lineas = horizontal ? alto : ancho;
-      const paso = horizontal ? 1 : ancho, salto = horizontal ? ancho : 1;
-      const n = 2 * r + 1;
-      for (let l = 0; l < lineas; l++) {
-        const o = l * salto;
-        let acc = 0;
-        for (let i = -r; i <= r; i++) acc += src[o + Math.min(largo - 1, Math.max(0, i)) * paso];
-        for (let i = 0; i < largo; i++) {
-          dst[o + i * paso] = acc / n;
-          acc += src[o + Math.min(largo - 1, i + r + 1) * paso] - src[o + Math.max(0, i - r) * paso];
-        }
-      }
+      masc = new Uint8Array(cols * filas);
     }
 
     // Esqueleto en una fase de la zancada (fase en radianes), mirando a la derecha
@@ -1022,40 +994,21 @@
       c.clearRect(0, 0, corW, corH);
       c.setTransform(ESC_COR, 0, 0, ESC_COR, 0.75 * L * ESC_COR, 0.62 * L * ESC_COR);
       c.lineCap = 'round'; c.lineJoin = 'round';
-      // Cada miembro es un cilindro: se pintan capas cada vez más estrechas y más claras, y el nivel de gris
-      // de cada punto es su altura (1 en el eje, 0 en el borde, con perfil circular). Donde dos miembros se
-      // cruzan manda el más alto ("lighten"), así que las piernas y los brazos se ven redondos y delante unos de otros.
-      c.globalCompositeOperation = 'lighten';
-      const CAPAS = 9;
-      const capa = k => {
-        const g = (k + 0.5) / CAPAS;                                     // altura de esta capa
-        const nivel = Math.round(g * 255);
-        const col = `rgb(${nivel},${nivel},${nivel})`;
-        c.strokeStyle = col; c.fillStyle = col;
-        return Math.sqrt(1 - g * g);                                     // anchura relativa que tiene a esa altura
-      };
+      c.strokeStyle = '#fff'; c.fillStyle = '#fff';
       const seg = (x0, y0, x1, y1, w) => {
-        for (let k = 0; k < CAPAS; k++) {
-          c.lineWidth = w * L * capa(k);
-          c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
-        }
-      };
-      const esfera = (x, y, r) => {
-        for (let k = 0; k < CAPAS; k++) {
-          const rel = capa(k);
-          c.beginPath(); c.arc(x, y, r * rel, 0, TAU); c.fill();
-        }
+        c.lineWidth = w * L;
+        c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
       };
 
-      const inclinacionTronco = 0.24;
+      const inclinacionTronco = 0.32;
       const hx = 0, hy = 0.016 * L * Math.cos(2 * fase);                 // cadera, con rebote
       const sx = hx + Math.sin(inclinacionTronco) * 0.30 * L;           // hombro
       const sy = hy - Math.cos(inclinacionTronco) * 0.30 * L;
-      seg(hx, hy, sx, sy, 0.21);                                        // tronco
+      seg(hx, hy, sx, sy, 0.17);                                        // tronco
       const cx = sx + Math.sin(inclinacionTronco * 0.5) * 0.14 * L;      // cabeza
       const cy = sy - Math.cos(inclinacionTronco * 0.5) * 0.14 * L;
-      seg(sx, sy, cx, cy, 0.09);
-      esfera(cx + 0.012 * L, cy, 0.098 * L);
+      seg(sx, sy, cx, cy, 0.07);
+      c.beginPath(); c.arc(cx + 0.012 * L, cy, 0.082 * L, 0, TAU); c.fill();
 
       for (const o of [Math.PI, 0]) {
         const f = fase + o;
@@ -1065,58 +1018,57 @@
         const kx = hx + Math.sin(a) * 0.245 * L, ky = hy + Math.cos(a) * 0.245 * L;
         const b = a - flexion;
         const px = kx + Math.sin(b) * 0.245 * L, py = ky + Math.cos(b) * 0.245 * L;
-        seg(hx, hy, kx, ky, 0.165);
-        seg(kx, ky, px, py, 0.125);
-        seg(px, py, px + Math.cos(b) * 0.1 * L, py - Math.sin(b) * 0.11 * L, 0.09);   // pie
+        seg(hx, hy, kx, ky, 0.135);
+        seg(kx, ky, px, py, 0.1);
+        seg(px, py, px + Math.cos(b) * 0.1 * L, py - Math.sin(b) * 0.1 * L, 0.07);   // pie
         // Brazo contrario a la pierna, con el codo doblado
         const g = 0.25 - 0.85 * Math.sin(f);
         const ex = sx + Math.sin(g) * 0.19 * L, ey = sy + Math.cos(g) * 0.19 * L;
         const d = g + 1.35 + 0.25 * Math.sin(f);
-        seg(sx, sy, ex, ey, 0.1);
-        seg(ex, ey, ex + Math.sin(d) * 0.18 * L, ey + Math.cos(d) * 0.18 * L, 0.085);
+        seg(sx, sy, ex, ey, 0.082);
+        seg(ex, ey, ex + Math.sin(d) * 0.18 * L, ey + Math.cos(d) * 0.18 * L, 0.07);
       }
     }
 
-    // Pasa la silueta a la rejilla con volumen: la silueta se desenfoca para tener una "altura" (alta en el
-    // cuerpo, baja en los bordes), de ahí salen las normales y una luz desde arriba a la izquierda decide
-    // el carácter y lo gris que es cada casilla. Los bordes se funden con el código (sin hueco alrededor).
-    // "visible" va de 0 a 1 mientras aparece.
+    // Pasa la silueta a la rejilla: aparece (crece) con "visible" de 0 a 1
     function corredor(fase, visible) {
       dibujarCorredor(fase);
       const datos = cCor.getImageData(0, 0, corW, corH).data;
-      for (let i = 0, n = corW * corH; i < n; i++) alturaA[i] = datos[i * 4 + 3] > 20 ? datos[i * 4] / 255 : 0;   // el gris es la altura
-      const r = 2;
-      for (let pasada = 0; pasada < 2; pasada++) {
-        desenfoque(alturaA, alturaB, corW, corH, r, true);
-        desenfoque(alturaB, alturaA, corW, corH, r, false);
-      }
-      const H = alturaA;
-
       const x0 = corX - 0.75 * corL, y0 = corY - 0.62 * corL;
       const c0 = Math.max(0, Math.floor(x0 / cw)), c1 = Math.min(cols - 1, Math.ceil((x0 + corW / ESC_COR) / cw));
       const f0 = Math.max(0, Math.floor(y0 / ch)), f1 = Math.min(filas - 1, Math.ceil((y0 + corH / ESC_COR) / ch));
-      const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
+      masc.fill(0);
       for (let f = f0; f <= f1; f++) {
         for (let c = c0; c <= c1; c++) {
           const ix = Math.round(((c + 0.5) * cw - x0) * ESC_COR), iy = Math.round(((f + 0.5) * ch - y0) * ESC_COR);
-          if (ix < 2 || iy < 2 || ix >= corW - 2 || iy >= corH - 2) continue;
-          const k = iy * corW + ix;
-          const alto = H[k];
-          if (alto < 0.03) continue;
-          // Cuanto más cerca del borde, más probable que la casilla siga siendo del código (el borde se funde)
-          const cobertura = lim((alto - 0.03) / 0.18, 0, 1);
+          if (ix < 0 || iy < 0 || ix >= corW || iy >= corH) continue;
+          const a = datos[(iy * corW + ix) * 4 + 3];
+          if (a < 110) continue;
           const azar = (((c * 73856093) ^ (f * 19349663)) >>> 0) % 1000 / 1000;
-          if (azar >= cobertura * visible) continue;
-
-          // Normal de la superficie y luz
-          const nx0 = -(H[k + 2] - H[k - 2]) * 3, ny0 = -(H[k + 2 * corW] - H[k - 2 * corW]) * 3;
-          const nl = Math.sqrt(nx0 * nx0 + ny0 * ny0 + 1);
-          const luz = Math.max(0, (nx0 * LUZ_COR[0] + ny0 * LUZ_COR[1] + LUZ_COR[2]) / nl);
-          const v = lim(0.12 + 0.95 * luz, 0, 1);
-          // Cuerpo con caracteres densos que se aclaran en las sombras; dentro de cada nivel, uno u otro según la casilla
-          const grupo = v >= 0.62 ? 'NNMN80' : v >= 0.4 ? '98O0N8' : v >= 0.22 ? '?97I8' : '+=I7?';
-          celdas[f * cols + c] = grupo.charCodeAt(((c * 7 + f * 13) >>> 0) % grupo.length);
-          brillo[f * cols + c] = Math.round(255 * lim(0.2 + 0.78 * v, 0, 1) * (0.55 + 0.45 * cobertura));   // gris, y más oscuro en los bordes
+          if (azar < visible) masc[f * cols + c] = a > 200 ? 2 : 1;           // 2 = dentro, 1 = borde
+        }
+      }
+      // Hueco alrededor de la silueta (se borra el código de detrás) y relleno con caracteres densos
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          const k = f * cols + c;
+          if (masc[k]) continue;
+          let cerca = false;
+          for (let df = -1; df <= 1 && !cerca; df++) {
+            for (let dc = -2; dc <= 2; dc++) {
+              const ff = f + df, cc = c + dc;
+              if (ff >= 0 && ff < filas && cc >= 0 && cc < cols && masc[ff * cols + cc]) { cerca = true; break; }
+            }
+          }
+          if (cerca) celdas[k] = 0;
+        }
+      }
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          const k = f * cols + c;
+          if (!masc[k]) continue;
+          celdas[k] = masc[k] === 2 ? LLENO[(c * 7 + f * 13 + (fase * 3 | 0)) % LLENO.length] : 57;   // el borde, con «9»
+          brillo[k] = 255;                                                    // el corredor siempre se ve entero, sin atenuar
         }
       }
     }
@@ -1128,6 +1080,7 @@
         if (fila < 0 || fila >= filas || c < 0 || c >= cols) continue;
         const letra = texto[i];
         if (letra === ' ') { celdas[fila * cols + c] = 0; continue; }
+        brillo[fila * cols + c] = 255;
         // las letras aparecen entre ruido y se asientan una tras otra
         const edad = (t - retraso - i * 28) / 380;
         const cod = edad >= 1 ? letra.charCodeAt(0)
@@ -1171,11 +1124,11 @@
       giro += giroVel * dt;
       inclina = lerp(inclina, 0.05 + raton.y * 0.6, 0.05);
 
-      // La figura empieza como una línea de caracteres y se abre
+      // El huracán empieza como una línea de caracteres y se abre
       const forma = 0.02 + 0.98 * suaveSalida((t - 1000) / 1700);
-      figura(forma, giro, inclina);
+      huracan(forma, giro, inclina, t / 1000);
 
-      // El corredor aparece dentro del código cuando la figura ya se ha abierto
+      // El corredor aparece en el ojo del huracán cuando ya se ha abierto
       const aparece = suaveSalida((t - 2000) / 1300);
       if (aparece > 0) corredor(t / 1000 * (TAU / CICLO_CARRERA), aparece);
 
@@ -1195,7 +1148,7 @@
       // Barra de carga, textos y aviso
       const progreso = Math.min(1, t / DUR_CARGA);
       const barra = Math.round(suaveSalida(progreso) * Math.min(40, cols * 0.3));
-      for (let i = 0; i < barra; i++) celdas[i] = 61;                                // «=»
+      for (let i = 0; i < barra; i++) { celdas[i] = 61; brillo[i] = 255; }           // «=»
       escribir('LES HORES EN EL DISSENY', 1, 0, t, 200);
       const hora = new Date();
       const reloj = `${formato2(hora.getHours())}:${formato2(hora.getMinutes())}:${formato2(hora.getSeconds())}`;
@@ -1270,7 +1223,7 @@
     if (sinMovimiento) {
       // Sin movimiento: figura quieta y un solo clic; la web aparece de golpe
       fase = 'lista'; listo = true;
-      figura(1, 0.6, 0.55);
+      huracan(1, 0.6, 0.35, 6);
       corredor(1.1, 1);
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
       for (let f = 0; f < filas; f++) for (let c = 0; c < cols; c++) {
