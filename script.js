@@ -834,13 +834,13 @@
         ctx.fillStyle = `rgba(255,255,255,${alfa.toFixed(3)})`;
 
         ctx.font = `700 ${tam.toFixed(1)}px ${fuente}`;
-        if (admiteTracking) ctx.letterSpacing = `${(-tam * 0.04).toFixed(2)}px`;
+        if (admiteTracking) ctx.letterSpacing = `${(-tam * 0.02).toFixed(2)}px`;
         ctx.lineWidth = tam * 0.18;
         ctx.strokeText(p.texto, x, y);
         ctx.fillText(p.texto, x, y);
 
         ctx.font = `700 ${tamNombre.toFixed(1)}px ${fuente}`;
-        if (admiteTracking) ctx.letterSpacing = `${(-tamNombre * 0.025).toFixed(2)}px`;
+        if (admiteTracking) ctx.letterSpacing = `${(-tamNombre * 0.01).toFixed(2)}px`;
         ctx.lineWidth = tamNombre * 0.28;
         ctx.strokeText(p.nombre, x, y + tam * 0.62);
         ctx.fillText(p.nombre, x, y + tam * 0.62);
