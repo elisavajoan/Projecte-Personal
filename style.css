@@ -213,9 +213,12 @@ html.cargando .reloj-scroll { opacity: 0; }
   padding: 7.78vw 0 2.79vw 1.345vw;   /* 133 px arriba · 48 px abajo · 23 px a la izquierda */
 }
 
+/* Título en Bold Oblique, de lado a lado: script.js ajusta el tamaño para que la línea más larga
+   llene el ancho. Este tamaño es solo el de partida (y el que queda si no hay JavaScript). */
 .portada h1 {
   margin: 0;
-  font-size: 13.094vw;                /* 223,9 px */
+  font-size: 17vw;
+  font-style: italic;
   line-height: .796;
   letter-spacing: -0.11em;
 }
@@ -628,7 +631,6 @@ html.cargando .reloj-scroll { opacity: 0; }
 
   /* Portada: el título más grande para llenar el ancho, y los cinco referentes repartidos de lado a lado */
   .portada { padding: calc(var(--cabecera) + 1.5rem) var(--margen) var(--margen); }
-  .portada h1 { font-size: 17vw; }
   .referentes { padding-left: 0; justify-content: space-between; gap: .5rem; }
   .referentes a { font-size: clamp(.68rem, 3.3vw, 1rem); }
 

@@ -222,6 +222,7 @@
 
   // Si la tipografía llega tarde, se vuelven a medir las letras
   function remedirTodo() {
+    ajustarTitulo();
     fijarAnchos($$('.let'));
     medirMosaicos(mosaicos.filter(m => m.medido));
   }
@@ -1454,9 +1455,43 @@
     });
   }
 
+  /* ---------- 3f. Título de la portada de lado a lado ----------
+     El tamaño se calcula para que la línea más larga ocupe todo el ancho, con el mismo margen a la
+     izquierda y a la derecha. Se mide la tinta real de las letras (cursiva y tracking incluidos),
+     así funciona con Helvetica, con Arial o con la tipografía que tenga cada ordenador. */
+
+  function ajustarTitulo() {
+    const h1 = $('.portada h1');
+    if (!h1) return;
+    const lineas = $$('.linea', h1);
+    if (!lineas.length) return;
+    h1.style.fontSize = '';
+    const cs = getComputedStyle(h1);
+    const fs = parseFloat(cs.fontSize);
+    const tracking = parseFloat(cs.letterSpacing) || 0;
+    const medidor = document.createElement('canvas').getContext('2d');
+    medidor.font = `${cs.fontStyle} ${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
+    if ('fontKerning' in medidor) medidor.fontKerning = 'none';          // las letras van sueltas, sin kerning
+    // Hasta dónde llega la tinta de cada línea, contando desde el inicio del texto
+    const tinta = Math.max(...lineas.map(l => {
+      const texto = l.textContent.replace(/\s+/g, ' ').trim();
+      const m = medidor.measureText(texto);
+      return m.actualBoundingBoxRight + (texto.length - 1) * tracking;
+    }));
+    const izquierda = h1.getBoundingClientRect().left;
+    const objetivo = document.documentElement.clientWidth - 2 * izquierda;
+    if (!(tinta > 0) || objetivo <= 0) return;
+    // En vw, para que siga llenando el ancho si cambia la ventana antes de volver a medir
+    h1.style.fontSize = (fs * objetivo / tinta / window.innerWidth * 100).toFixed(3) + 'vw';
+  }
+
   /* ---------- 4. Arranque ---------- */
 
   function iniciar() {
+    // El título de la portada se ajusta al ancho antes de partirlo en letras
+    ajustarTitulo();
+    window.addEventListener('resize', ajustarTitulo);
+
     // Total de horas y nota de días: se calculan con los datos
     const cifraTotal = $('[data-total]');
     if (cifraTotal) cifraTotal.textContent = formato(totalHoras);
