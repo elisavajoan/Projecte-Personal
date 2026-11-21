@@ -42,7 +42,7 @@
   const totalHoras = programas.reduce((suma, p) => suma + p.horas, 0);
   const maxHoras = Math.max(...programas.map(p => p.horas));
 
-  const NUMEROS = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
+  const NUMEROS = ['', 'un', 'dos', 'tres', 'quatre', 'cinc', 'sis', 'set', 'vuit', 'nou', 'deu'];
 
   /* ---------- 2. Texto decodificado ---------- */
 
@@ -1172,7 +1172,7 @@
     if (nota) {
       const dias = Math.round(totalHoras / 24);
       const cuantos = NUMEROS[programas.length] || programas.length;
-      nota.textContent = `horas en ${cuantos} programas de diseño. Son ${dias} días seguidos, de día y de noche.`;
+      nota.textContent = `hores en ${cuantos} programes de disseny. Són ${dias} dies seguits, de dia i de nit.`;
     }
 
     // Barra de cada programa: su largo es la parte de horas respecto al que más tiene

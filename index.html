@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="ca">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Les Hores En El Disseny</title>
-  <meta name="description" content="Las horas que un diseñador dedica a dominar los programas de diseño, programa a programa.">
+  <meta name="description" content="Les hores que un dissenyador dedica a dominar els programes de disseny, programa a programa.">
 
   <!-- El nombre tiene que coincidir con el del archivo: style.css -->
-  <link rel="stylesheet" href="style.css?v=20261121b">
+  <link rel="stylesheet" href="style.css?v=20261121c">
 
   <!-- Avisa al CSS de que hay JavaScript, para preparar las animaciones -->
   <script>document.documentElement.classList.add('js');</script>
@@ -19,14 +19,14 @@
        (El dibujo lo hace script.js; el botón ocupa toda la pantalla y sirve también con el teclado.) -->
   <div class="entrada" id="entrada">
     <canvas class="entrada__lienzo" aria-hidden="true"></canvas>
-    <button class="entrada__boton" type="button" disabled aria-label="Entrar a Les Hores En El Disseny"></button>
+    <button class="entrada__boton" type="button" disabled aria-label="Entra a Les Hores En El Disseny"></button>
   </div>
 
   <!-- ============ Cabecera · tres botones arriba a la derecha ============
        De momento no hacen nada: solo cambian a oblicua al pasar el ratón.
        El texto se ve blanco sobre las pantallas negras y negro sobre las blancas. -->
   <header class="cabecera">
-    <nav class="cabecera__menu" aria-label="Fases del proyecto">
+    <nav class="cabecera__menu" aria-label="Fases del projecte">
       <button type="button" data-decode data-velocidad="14" data-duracion="700">Investigació</button>
       <button type="button" data-decode data-velocidad="14" data-duracion="700">Contextualització</button>
       <button type="button" data-decode data-velocidad="14" data-duracion="700">Conceptualització</button>
@@ -41,7 +41,7 @@
       <h1 data-decode data-velocidad="28" data-duracion="1000"><span class="linea">Les Hores</span> <span class="linea">En El Disseny</span></h1>
 
       <!-- Abajo a la izquierda: los cinco referentes. Cada enlace salta a su pantalla (las de después de los datos). -->
-      <nav class="referentes" aria-label="Referentes del proyecto">
+      <nav class="referentes" aria-label="Referents del projecte">
         <a href="#ref-mesh3d" data-decode data-velocidad="8" data-duracion="500">mesh 3d</a>
         <a href="#ref-stateofaidesign" data-decode data-velocidad="8" data-duracion="500">AI in design</a>
         <a href="#ref-aino" data-decode data-velocidad="8" data-duracion="500">aino.agency</a>
@@ -52,20 +52,20 @@
 
     <!-- ============ PANTALLA 2 · Lo que no se ve ============ -->
     <section class="banda banda--clara manifiesto" id="proceso">
-      <p class="declaracion" data-decode data-velocidad="1" data-duracion="600">«¿Y tú de qué vas a trabajar? Lo tuyo es fácil, ¿no? ¿No hacéis exámenes?» Siempre me preguntan lo mismo. Del diseño solo se ve el resultado: no se ven las mil pruebas ni las ideas descartadas, ni el tiempo que lleva dominar cada programa.</p>
+      <p class="declaracion" data-decode data-velocidad="1" data-duracion="600">«I tu, de què treballaràs? El que fas tu és fàcil, no? No feu exàmens?» Sempre em pregunten el mateix. Del disseny només se'n veu el resultat: no es veuen les mil proves ni les idees descartades, ni el temps que costa dominar cada programa.</p>
 
       <div class="total">
         <!-- El total se calcula solo sumando las horas de los programas (pantalla 4) -->
         <p class="total__cifra" data-decode data-velocidad="60" data-duracion="1100"><span data-total>6.486,48</span> <span class="total__unidad">h</span></p>
-        <p class="total__nota" data-decode data-nota-dias>horas en siete programas de diseño. Son 270 días seguidos, de día y de noche.</p>
+        <p class="total__nota" data-decode data-nota-dias>hores en set programes de disseny. Són 270 dies seguits, de dia i de nit.</p>
       </div>
     </section>
 
     <!-- ============ PANTALLA 3 · El torbellino ============ -->
     <section class="banda banda--oscura torbellino" id="torbellino">
       <canvas id="lienzo" aria-hidden="true"></canvas>
-      <h2 class="torbellino__titulo" data-decode data-velocidad="10" data-duracion="1000">Estas horas no se ven en el resultado final.</h2>
-      <p class="torbellino__leyenda" data-decode>Cada cifra es un programa. Cuantas más horas, más grande y más frecuente.</p>
+      <h2 class="torbellino__titulo" data-decode data-velocidad="10" data-duracion="1000">Aquestes hores no es veuen en el resultat final.</h2>
+      <p class="torbellino__leyenda" data-decode>Cada xifra és un programa. Com més hores, més gran i més freqüent.</p>
     </section>
 
     <!-- ============ PANTALLA 4 · Los datos ============ -->
@@ -74,7 +74,7 @@
       El torbellino, las barras y el total se actualizan solos a partir de data-horas.
     -->
     <section class="banda banda--clara datos" id="datos">
-      <h2 class="datos__titulo" data-decode data-velocidad="14" data-duracion="1000">Horas acumuladas en cada programa</h2>
+      <h2 class="datos__titulo" data-decode data-velocidad="14" data-duracion="1000">Hores acumulades en cada programa</h2>
 
       <ul class="programas">
 
@@ -82,15 +82,15 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-figma">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Figma</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.786,61 h</span>
-            <span class="programa__sesion" data-decode>Sesión media 1h 52m</span>
+            <span class="programa__sesion" data-decode>Sessió mitjana 1h 52m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-figma">
             <div class="programa__interior">
               <dl>
-                <div><dt>Patrón de sesión</dt><dd>Bloques prolongados e ininterrumpidos.</dd></div>
-                <div><dt>Picos de actividad</dt><dd>De 10:00 a 14:00 y de 16:00 a 19:30.</dd></div>
-                <div><dt>Tendencia</dt><dd>Exponencial ascendente desde 2022 (+238 % entre 2022 y 2024). Se ha convertido en la herramienta troncal de diseño y prototipado.</dd></div>
+                <div><dt>Patró de sessió</dt><dd>Blocs prolongats i ininterromputs.</dd></div>
+                <div><dt>Pics d'activitat</dt><dd>De 10:00 a 14:00 i de 16:00 a 19:30.</dd></div>
+                <div><dt>Tendència</dt><dd>Exponencial ascendent des del 2022 (+238 % entre el 2022 i el 2024). S'ha convertit en l'eina troncal de disseny i prototipatge.</dd></div>
               </dl>
             </div>
           </div>
@@ -101,14 +101,14 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-photoshop">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Photoshop</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.415,25 h</span>
-            <span class="programa__sesion" data-decode>Sesión media 1h 38m</span>
+            <span class="programa__sesion" data-decode>Sessió mitjana 1h 38m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-photoshop">
             <div class="programa__interior">
               <dl>
-                <div><dt>Patrón de sesión</dt><dd>Sesiones segmentadas con uso intensivo de GPU y RAM.</dd></div>
-                <div><dt>Tendencia</dt><dd>Pico máximo en 2022 (382,30 h) y descenso hacia un estándar estable de unas 240 h al año. Se centra casi por completo en procesado fotográfico complejo, retoque digital y mockups avanzados.</dd></div>
+                <div><dt>Patró de sessió</dt><dd>Sessions segmentades amb ús intensiu de GPU i RAM.</dd></div>
+                <div><dt>Tendència</dt><dd>Pic màxim el 2022 (382,30 h) i descens cap a un estàndard estable d'unes 240 h l'any. Se centra gairebé del tot en el processament fotogràfic complex, el retoc digital i els mockups avançats.</dd></div>
               </dl>
             </div>
           </div>
@@ -119,14 +119,14 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-illustrator">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Illustrator</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">1.238,80 h</span>
-            <span class="programa__sesion" data-decode>Sesión media 1h 24m</span>
+            <span class="programa__sesion" data-decode>Sessió mitjana 1h 24m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-illustrator">
             <div class="programa__interior">
               <dl>
-                <div><dt>Patrón de sesión</dt><dd>Trabajo continuo en fases de branding y maquetación vectorial.</dd></div>
-                <div><dt>Tendencia</dt><dd>Reducción moderada de horas, porque el diseño de layouts e interfaces ha pasado a Figma. Mantiene la exclusividad en ilustración, iconografía de precisión e identidad corporativa.</dd></div>
+                <div><dt>Patró de sessió</dt><dd>Treball continu en fases de branding i maquetació vectorial.</dd></div>
+                <div><dt>Tendència</dt><dd>Reducció moderada d'hores, perquè el disseny de layouts i interfícies ha passat a Figma. Manté l'exclusivitat en il·lustració, iconografia de precisió i identitat corporativa.</dd></div>
               </dl>
             </div>
           </div>
@@ -137,14 +137,14 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-premiere">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Premiere Pro</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">867,95 h</span>
-            <span class="programa__sesion" data-decode>Sesión media 2h 45m</span>
+            <span class="programa__sesion" data-decode>Sessió mitjana 2h 45m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-premiere">
             <div class="programa__interior">
               <dl>
-                <div><dt>Patrón de sesión</dt><dd>Sesiones de larga duración asociadas a cortes y montaje.</dd></div>
-                <div><dt>Tendencia</dt><dd>Aumento notable a partir de 2023. Consolida una producción de vídeo regular que se estabiliza en torno a 180–210 h al año.</dd></div>
+                <div><dt>Patró de sessió</dt><dd>Sessions de llarga durada associades a talls i muntatge.</dd></div>
+                <div><dt>Tendència</dt><dd>Augment notable a partir del 2023. Consolida una producció de vídeo regular que s'estabilitza al voltant de 180–210 h l'any.</dd></div>
               </dl>
             </div>
           </div>
@@ -155,14 +155,14 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-aftereffects">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">After Effects</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">602,80 h</span>
-            <span class="programa__sesion" data-decode>Sesión media 2h 10m</span>
+            <span class="programa__sesion" data-decode>Sessió mitjana 2h 10m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-aftereffects">
             <div class="programa__interior">
               <dl>
-                <div><dt>Patrón de sesión</dt><dd>Ráfagas técnicas centradas en motion graphics, keyframing y renders pesados.</dd></div>
-                <div><dt>Tendencia</dt><dd>Curva de especialización progresiva: en 2024 duplicó las horas de 2022.</dd></div>
+                <div><dt>Patró de sessió</dt><dd>Ràfegues tècniques centrades en motion graphics, keyframing i renders pesants.</dd></div>
+                <div><dt>Tendència</dt><dd>Corba d'especialització progressiva: el 2024 va duplicar les hores del 2022.</dd></div>
               </dl>
             </div>
           </div>
@@ -173,14 +173,14 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-indesign">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">InDesign</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">430,29 h</span>
-            <span class="programa__sesion" data-decode>Sesión media 1h 45m</span>
+            <span class="programa__sesion" data-decode>Sessió mitjana 1h 45m</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-indesign">
             <div class="programa__interior">
               <dl>
-                <div><dt>Patrón de sesión</dt><dd>Bloques densos pero espaciados en el tiempo, por entregas.</dd></div>
-                <div><dt>Tendencia</dt><dd>Decreciente de forma sostenida. Su uso se limita a publicaciones editoriales, manuales de identidad en PDF corporativo y material para imprenta.</dd></div>
+                <div><dt>Patró de sessió</dt><dd>Blocs densos però espaiats en el temps, per entregues.</dd></div>
+                <div><dt>Tendència</dt><dd>Decreixent de manera sostinguda. El seu ús es limita a publicacions editorials, manuals d'identitat en PDF corporatiu i material per a impremta.</dd></div>
               </dl>
             </div>
           </div>
@@ -191,14 +191,14 @@
           <button class="programa__cabecera" type="button" aria-expanded="false" aria-controls="detalle-bridge">
             <span class="programa__nombre" data-decode data-velocidad="4" data-duracion="600">Bridge</span>
             <span class="programa__horas" data-decode data-velocidad="20" data-duracion="900">144,78 h</span>
-            <span class="programa__sesion" data-decode>Sesión media 11 min</span>
+            <span class="programa__sesion" data-decode>Sessió mitjana 11 min</span>
             <span class="programa__icono" aria-hidden="true"></span>
           </button>
           <div class="programa__cuerpo" id="detalle-bridge">
             <div class="programa__interior">
               <dl>
-                <div><dt>Patrón de sesión</dt><dd>Micro-sesiones utilitarias de ingesta, cribado y metadatos.</dd></div>
-                <div><dt>Frecuencia media</dt><dd>De 3 a 5 ejecuciones al día durante los días de rodaje y edición.</dd></div>
+                <div><dt>Patró de sessió</dt><dd>Microsessions utilitàries d'ingesta, cribratge i metadades.</dd></div>
+                <div><dt>Freqüència mitjana</dt><dd>De 3 a 5 execucions al dia durant els dies de rodatge i edició.</dd></div>
               </dl>
             </div>
           </div>
@@ -207,7 +207,7 @@
 
       </ul>
 
-      <p class="cierre" data-decode data-velocidad="3" data-duracion="700">El resultado se ve en un segundo. Llegar a él lleva miles de horas.</p>
+      <p class="cierre" data-decode data-velocidad="3" data-duracion="700">El resultat es veu en un segon. Arribar-hi costa milers d'hores.</p>
     </section>
 
     <!-- ============ PANTALLAS 5 a 9 · Los referentes ============
@@ -220,7 +220,7 @@
       <div class="ref__escena">
         <figure class="ref__imagen">
           <img src="images/ref-mesh3d.webp" width="910" height="506" loading="lazy" decoding="async"
-               alt="Portada de mesh3d.gallery: el titular «The state of the gallery» en letras grandes sobre un fondo oscuro con ondas verdes.">
+               alt="Portada de mesh3d.gallery: el titular «The state of the gallery» en lletres grans sobre un fons fosc amb ones verdes.">
         </figure>
         <div class="ref__texto" lang="ca">
           <h2 class="ref__titulo" id="ref-mesh3d-titulo" data-decode data-velocidad="8" data-duracion="700">MESH 3D</h2>
@@ -234,7 +234,7 @@
       <div class="ref__escena">
         <figure class="ref__imagen">
           <img src="images/ref-stateofaidesign.webp" width="907" height="506" loading="lazy" decoding="async"
-               alt="Portada de stateofaidesign.com: el título «Ai in Design 2026» en un recuadro negro sobre un collage de flores en tonos rosa, lila y verde.">
+               alt="Portada de stateofaidesign.com: el títol «Ai in Design 2026» en un requadre negre sobre un collage de flors en tons rosa, lila i verd.">
         </figure>
         <div class="ref__texto" lang="ca">
           <h2 class="ref__titulo" id="ref-stateofaidesign-titulo" data-decode data-velocidad="8" data-duracion="700">State of Ai Design</h2>
@@ -248,7 +248,7 @@
       <div class="ref__escena">
         <figure class="ref__imagen">
           <img src="images/ref-aino.webp" width="923" height="512" loading="lazy" decoding="async"
-               alt="Portada de aino.agency: composiciones de caracteres de texto y de código (arte ASCII) sobre un fondo oscuro.">
+               alt="Portada d'aino.agency: composicions de caràcters de text i de codi (art ASCII) sobre un fons fosc.">
         </figure>
         <div class="ref__texto" lang="ca">
           <h2 class="ref__titulo" id="ref-aino-titulo" data-decode data-velocidad="8" data-duracion="700">Aino.Agency</h2>
@@ -262,7 +262,7 @@
       <div class="ref__escena">
         <figure class="ref__imagen">
           <img src="images/ref-pinnacl.webp" width="924" height="512" loading="lazy" decoding="async"
-               alt="Portada de pinnacl.co: la palabra PINNACL en grandes letras moradas sobre una nube de puntos blancos en un fondo negro.">
+               alt="Portada de pinnacl.co: la paraula PINNACL en grans lletres morades sobre un núvol de punts blancs en un fons negre.">
         </figure>
         <div class="ref__texto" lang="ca">
           <h2 class="ref__titulo" id="ref-pinnacl-titulo" data-decode data-velocidad="8" data-duracion="700">PINNACL</h2>
@@ -276,7 +276,7 @@
       <div class="ref__escena">
         <figure class="ref__imagen">
           <img src="images/ref-mirage.webp" width="925" height="512" loading="lazy" decoding="async"
-               alt="Portada de studiomirage.io: un círculo negro con la palabra MIRAGE en el centro, rodeado de un halo de luz blanca.">
+               alt="Portada de studiomirage.io: un cercle negre amb la paraula MIRAGE al centre, envoltat d'un halo de llum blanca.">
         </figure>
         <div class="ref__texto" lang="ca">
           <h2 class="ref__titulo" id="ref-mirage-titulo" data-decode data-velocidad="8" data-duracion="700">Studio Mirage</h2>
@@ -329,6 +329,6 @@
   </footer>
 
   <!-- El JavaScript va al final, cuando la página ya está cargada -->
-  <script src="script.js?v=20261121b"></script>
+  <script src="script.js?v=20261121c"></script>
 </body>
 </html>
