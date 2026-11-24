@@ -109,6 +109,6 @@ Aprendido: el log se escribe con el formato de clase desde el principio.
 Cambios: [eeb98f3](https://github.com/elisavajoan/Projecte-Personal/commit/eeb98f3) · [PR #7](https://github.com/elisavajoan/Projecte-Personal/pull/7)
 
 ## 24/11 · Documentos con las plantillas de clase
-Criterio: CONTEXT, SOUL, INSTRUCTIONS y LOG personalizados, sin huecos de la plantilla y sin datos inventados. 1 vuelta. Pendiente de que Joan lo revise.
-Aprendido: (se rellena después de la revisión).
+Criterio: CONTEXT, SOUL, INSTRUCTIONS y LOG personalizados, sin huecos de la plantilla, sin datos inventados y sin perder nada de lo que había. 2 vueltas (primero los antiguos se sustituyeron y quedaron en `archivo/`; después Joan pidió fusionar su contenido dentro: CONTEXTO y MEMORIA en CONTEXT, PERSONALIDAD en SOUL, y la lista de antes de entregar y las peticiones de Figma y p5 en INSTRUCTIONS). Pendiente de que Joan lo revise.
+Aprendido: cuando Joan pide cambiar unos documentos por otros, quiere conservar el contenido: se fusiona en el archivo que toca, no se archiva.
 Cambios: [PR #8](https://github.com/elisavajoan/Projecte-Personal/pull/8)
