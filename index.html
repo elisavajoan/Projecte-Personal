@@ -10,7 +10,7 @@
   <link rel="preload" href="fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- El nombre tiene que coincidir con el del archivo: style.css -->
-  <link rel="stylesheet" href="style.css?v=20261121i">
+  <link rel="stylesheet" href="style.css?v=20261124a">
 
   <!-- Avisa al CSS de que hay JavaScript, para preparar las animaciones -->
   <script>document.documentElement.classList.add('js');</script>
@@ -37,7 +37,8 @@
   </header>
 
   <!-- ============ Reloj de arena que acompaña el scroll ============
-       Abajo a la derecha. Gira al hacer scroll y la arena cae a medida que avanzas (lo dibuja script.js). -->
+       Arriba a la izquierda. Gira al hacer scroll y la arena cae a medida que avanzas (lo dibuja script.js).
+       Mientras se ve la portada se esconde, porque allí está el reloj grande. -->
   <canvas class="reloj-scroll" aria-hidden="true"></canvas>
 
   <main>
@@ -46,6 +47,9 @@
     <section class="banda banda--oscura portada" id="portada">
       <!-- Título en dos líneas fijas, grande, arriba a la izquierda. El nombre del proyecto sigue en la entrada y en el pie. -->
       <h1 data-decode data-velocidad="28" data-duracion="1000"><span class="linea">La Importància</span> <span class="linea">Del Temps</span></h1>
+
+      <!-- A la derecha (en el móvil, debajo del título): el reloj de arena grande, hecho de caracteres. Lo dibuja script.js. -->
+      <div class="portada__reloj" aria-hidden="true"><canvas></canvas></div>
 
       <!-- Abajo a la izquierda: los cinco referentes. Cada enlace salta a su pantalla (las de después de los datos). -->
       <nav class="referentes" aria-label="Referents del projecte">
@@ -336,6 +340,6 @@
   </footer>
 
   <!-- El JavaScript va al final, cuando la página ya está cargada -->
-  <script src="script.js?v=20261121i"></script>
+  <script src="script.js?v=20261124a"></script>
 </body>
 </html>
