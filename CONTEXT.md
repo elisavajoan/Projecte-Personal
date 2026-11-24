@@ -137,7 +137,7 @@ Los tres trabajos tratan el mismo tema, el tiempo y los datos personales de Joan
 ## Estado
 | Clase | Entrega | Estado |
 |---|---|---|
-| Daniel | Web publicada | ✅ Publicada y al día (PR #1 a #7). La PR #8 (estos documentos) espera el Merge. |
+| Daniel | Web publicada | ✅ Publicada y al día (PR #1 a #8). |
 | Tona | Prototipo en Figma (WEB 1) | ✅ Secciones integradas y animadas, en Bricolage Grotesque. Hay que revisar los textos. |
 | Tona | Memoria | 🟡 Estructura propuesta. Falta el borrador y saber qué formato pide Tona. |
 | Iván | 1 · Datos (Shrub situation) | ✅ Hecha. No se toca. |
