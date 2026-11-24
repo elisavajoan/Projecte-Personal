@@ -112,7 +112,7 @@ LO SABRÉ PORQUE: comparo el log con el historial de commits del repositorio.
 QUIERO: cambiar los documentos de contexto, personalidad y memoria por las plantillas de clase (CONTEXT, SOUL, INSTRUCTIONS y LOG), personalizadas con mi proyecto.
 
 SERÁ BUENO SI:
-- Los cuatro archivos tienen los mismos apartados que las plantillas y no queda ningún [corchete] por rellenar.
+- Los cuatro archivos tienen los mismos apartados que las plantillas y no queda ningún hueco de la plantilla entre corchetes.
 - SOUL.md tiene unas 20 líneas y habla de cómo trabajar, no del proyecto.
 - Lo que no se sabe dice «por confirmar» o «no lo sé», en lugar de inventarse.
 - No se pierde nada de lo que había: lo largo está en `archivo/`.
@@ -121,4 +121,4 @@ NO SIRVE SI:
 - Hay una cifra o una fecha inventada.
 - Desaparece información que necesitan el Figma o los sketches de p5.
 
-LO SABRÉ PORQUE: busco «[» en los cuatro archivos, cuento las líneas de SOUL.md y comparo CONTEXT.md con los documentos antiguos.
+LO SABRÉ PORQUE: busco corchetes sin rellenar en los cuatro archivos, cuento las líneas de SOUL.md y comparo CONTEXT.md con los documentos antiguos.

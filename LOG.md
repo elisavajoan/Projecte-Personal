@@ -109,6 +109,6 @@ Aprendido: el log se escribe con el formato de clase desde el principio.
 Cambios: [eeb98f3](https://github.com/elisavajoan/Projecte-Personal/commit/eeb98f3) · [PR #7](https://github.com/elisavajoan/Projecte-Personal/pull/7)
 
 ## 24/11 · Documentos con las plantillas de clase
-Criterio: CONTEXT, SOUL, INSTRUCTIONS y LOG personalizados, sin [corchetes] y sin datos inventados. 1 vuelta. Pendiente de que Joan lo revise.
+Criterio: CONTEXT, SOUL, INSTRUCTIONS y LOG personalizados, sin huecos de la plantilla y sin datos inventados. 1 vuelta. Pendiente de que Joan lo revise.
 Aprendido: (se rellena después de la revisión).
 Cambios: [PR #8](https://github.com/elisavajoan/Projecte-Personal/pull/8)
