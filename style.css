@@ -180,9 +180,11 @@ body {
   pointer-events: none;
   mix-blend-mode: difference;
   opacity: 0;
-  transition: opacity 1.2s ease .6s;
+  transition: opacity .5s ease;
 }
 .reloj-scroll.visible { opacity: 1; }
+/* Cede el sitio mientras se ve el reloj grande de la portada: al bajar, el reloj se queda de logo */
+.reloj-scroll.visible.cedido { opacity: 0; }
 html.cargando .reloj-scroll { opacity: 0; }
 @media (min-width: 1000px) {
   .reloj-scroll { top: .9vw; left: 1.345vw; }     /* el mismo margen que el título del Figma */
@@ -228,6 +230,7 @@ html.cargando .reloj-scroll { opacity: 0; }
    ========================================================= */
 
 .portada {
+  --titulo-ancho: 1;                  /* parte del ancho que llena el título (la lee script.js) */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -235,8 +238,8 @@ html.cargando .reloj-scroll { opacity: 0; }
   padding: 7.78vw 0 2.79vw 1.345vw;   /* 133 px arriba · 48 px abajo · 23 px a la izquierda */
 }
 
-/* Título en Bold Oblique, de lado a lado: script.js ajusta el tamaño para que la línea más larga
-   llene el ancho. Este tamaño es solo el de partida (y el que queda si no hay JavaScript). */
+/* Título en Bold Oblique: script.js ajusta el tamaño para que la línea más larga llene su parte
+   del ancho. Este tamaño es solo el de partida (y el que queda si no hay JavaScript). */
 .portada h1 {
   margin: 0;
   font-size: 17vw;
@@ -245,6 +248,33 @@ html.cargando .reloj-scroll { opacity: 0; }
   letter-spacing: -0.05em;
 }
 .portada .linea { display: block; white-space: nowrap; }
+
+/* El reloj de arena grande. En el móvil ocupa el hueco entre el título y los referentes;
+   en pantalla ancha va a la derecha, del alto del título hasta los referentes. */
+.portada__reloj {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 14rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+.portada__reloj.visible { opacity: 1; }
+.portada__reloj canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Pantalla ancha: el título se queda en la parte izquierda (el 56 % del ancho) y el reloj, a la derecha */
+@media (min-width: 1000px) {
+  .portada { --titulo-ancho: .56; }
+  .portada h1 { font-size: 9.5vw; }
+  .portada__reloj {
+    position: absolute;
+    top: 7.78vw;
+    bottom: 2.79vw;
+    right: 1.345vw;
+    width: 38vw;
+    min-height: 0;
+  }
+}
 
 /* Enlaces a los referentes: abajo a la izquierda, en Bold Oblique */
 .referentes {
@@ -652,7 +682,7 @@ html.cargando .reloj-scroll { opacity: 0; }
   .cabecera__menu { gap: .9rem; padding-top: 1.25rem; }
 
   /* Portada: el título más grande para llenar el ancho, y los cinco referentes repartidos de lado a lado */
-  .portada { padding: calc(var(--cabecera) + 1.5rem) var(--margen) var(--margen); }
+  .portada { padding: calc(var(--cabecera) + 1.5rem) var(--margen) var(--margen); gap: 1.5rem; }
   .referentes { padding-left: 0; justify-content: space-between; gap: .5rem; }
   .referentes a { font-size: clamp(.68rem, 3.3vw, 1rem); }
 

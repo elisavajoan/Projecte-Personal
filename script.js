@@ -907,7 +907,7 @@
      de caracteres (de claro a denso según la luz). Lo usan la pantalla de entrada y el reloj que
      acompaña el scroll. NT, NTH y NC = cuántos puntos se calculan (más = más detalle).
      dibujar(rejilla, forma, giro, inclina, arena):
-       rejilla = { cols, filas, cw, ch, celdas, prof [, arena] }
+       rejilla = { cols, filas, cw, ch, celdas, prof [, arena] [, zoom] }   (zoom < 1 deja más aire alrededor)
        arena   = 0..1 (opcional): cuánta arena ha caído. Sin arena, el reloj es macizo. */
   function crearRelojArena(NT, NTH, NC) {
     const costh = new Float32Array(NTH + 1), senth = new Float32Array(NTH + 1);
@@ -960,7 +960,7 @@
       formaAct = forma; giroAct = giro;
       const aspecto = ch / cw;
       // la figura cabe en alto y también en ancho (en vertical, en móvil)
-      const escala = Math.min(filas * 0.33, cols * 0.4 / aspecto) * DIST;
+      const escala = Math.min(filas * 0.33, cols * 0.4 / aspecto) * DIST * (rejilla.zoom || 1);
       const cx = cols / 2, cy = filas / 2;
       const conArena = arena != null;
       const nivelArriba = conArena ? ARENA_MAX * (1 - arena) : 0;     // arriba: del cuello hacia arriba
@@ -1035,12 +1035,18 @@
      (más rápido cuanto más deprisa bajas; hacia atrás si subes) y la arena va cayendo a medida
      que avanzas: arriba del todo de la página está lleno y al llegar al final ya ha caído toda. */
 
+  // Parte de la página recorrida: 0 arriba, 1 al final. Es la arena que ha caído en los dos relojes,
+  // con un mínimo para que el chorro ya caiga al llegar: el tiempo corre desde el principio.
+  function arenaCaida() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    return Math.max(0.02, max > 0 ? Math.min(1, window.scrollY / max) : 0);
+  }
+
   function iniciarRelojScroll() {
     const lienzo = $('.reloj-scroll');
     if (!lienzo) return;
     const ctx = lienzo.getContext('2d');
     const reloj = crearRelojArena(64, 120, 14);
-    const raizHtml = document.documentElement;
     let rejilla = null, atlas = null, dpr = 1;
 
     function medir() {
@@ -1082,11 +1088,7 @@
       }
     }
 
-    // Parte de la página recorrida: 0 arriba, 1 al final
-    const recorrido = () => {
-      const max = raizHtml.scrollHeight - window.innerHeight;
-      return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-    };
+    const recorrido = arenaCaida;
 
     medir();
     let tamanoPrevio = window.innerWidth;
@@ -1129,6 +1131,158 @@
     }
     requestAnimationFrame(cuadro);
     lienzo.classList.add('visible');
+  }
+
+  /* ---------- 3g. Reloj de arena grande de la portada ----------
+     El mismo reloj de arena, en grande, a la derecha del título. Como en la entrada, el ratón manda
+     (a la derecha gira más rápido, arriba y abajo se inclina) y los caracteres se alborotan cerca del
+     puntero. Con el scroll se acelera, y la arena es la misma que la del reloj pequeño: la parte de la
+     página recorrida. Mientras se ve, el reloj pequeño se esconde; al bajar, el reloj se queda de logo.
+     Solo se dibuja mientras está en pantalla. */
+
+  function iniciarRelojPortada() {
+    const caja = $('.portada__reloj');
+    if (!caja) return;
+    const lienzo = $('canvas', caja);
+    const ctx = lienzo.getContext('2d');
+    const pequeno = $('.reloj-scroll');
+    let reloj = null, puntos = '';
+    let rejilla = null, atlas = null, dpr = 1;
+    let x0 = 0, y0 = 0;                                   // la rejilla va centrada dentro de la caja
+    let cajaX = 0, cajaY = 0;                             // posición de la caja en la página
+
+    function medir() {
+      const r = caja.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return false;
+      cajaX = r.left + window.scrollX; cajaY = r.top + window.scrollY;
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      // Unas 56 filas de caracteres de alto, sea cual sea la pantalla (entre 7 y 13 px)
+      const tam = Math.max(7, Math.min(13, r.height / 73));
+      ctx.font = `500 ${tam}px ${FUENTE_MOSAICO}`;
+      const cw = ctx.measureText('M').width + tam * 0.045;
+      const ch = tam * 1.3;
+      const cols = Math.floor(r.width / cw), filas = Math.floor(r.height / ch);
+      x0 = (r.width - cols * cw) / 2; y0 = (r.height - filas * ch) / 2;
+      lienzo.width = Math.round(r.width * dpr); lienzo.height = Math.round(r.height * dpr);
+      rejilla = {
+        cols, filas, cw, ch, zoom: 0.9,
+        celdas: new Uint16Array(cols * filas), prof: new Float32Array(cols * filas), arena: new Uint8Array(cols * filas),
+      };
+      // Los puntos de la superficie, según el tamaño de la rejilla: los justos para que no queden huecos
+      const nth = Math.round(Math.min(400, Math.max(200, cols * 3.6)));
+      const nt = Math.round(Math.min(180, Math.max(100, filas * 2.6)));
+      if (puntos !== nt + '·' + nth) { puntos = nt + '·' + nth; reloj = crearRelojArena(nt, nth, Math.round(nt / 5)); }
+      const w = Math.max(1, Math.round(cw * dpr)), h = Math.max(1, Math.round(ch * dpr));
+      atlas = crearAtlas(w, h, (c, x, y, cod) => {
+        c.fillStyle = '#fff';
+        c.font = `500 ${tam * dpr}px ${FUENTE_MOSAICO}`;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(String.fromCharCode(cod), x + w / 2, y + h / 2 + h * 0.04);
+      });
+      return true;
+    }
+
+    // Puntero: en la ventana (de 0 a 1, para el giro) y en la página (para alborotar los caracteres)
+    const raton = { x: 0.5, y: 0.5, px: -1e4, py: -1e4 };
+    function pintar(forma, giro, inclina, arena) {
+      if (!rejilla) return;
+      reloj.dibujar(rejilla, forma, giro, inclina, arena);
+      const { cols, filas, cw, ch, celdas } = rejilla;
+      // Caracteres que se alborotan cerca del puntero
+      const rc = (raton.px - cajaX - x0) / cw, rf = (raton.py - cajaY - y0) / ch;
+      const R = 6;
+      if (rc > -R * 2 && rc < cols + R * 2 && rf > -R && rf < filas + R) {
+        for (let f = Math.max(0, Math.floor(rf - R)); f <= Math.min(filas - 1, Math.ceil(rf + R)); f++) {
+          for (let c = Math.max(0, Math.floor(rc - R * 1.8)); c <= Math.min(cols - 1, Math.ceil(rc + R * 1.8)); c++) {
+            const k = f * cols + c;
+            if (!celdas[k]) continue;
+            const dx = (c - rc) / 1.8, dy = f - rf;
+            if (dx * dx + dy * dy < R * R && Math.random() < 0.4) {
+              celdas[k] = RAMPA.charCodeAt(Math.floor(Math.random() * RAMPA.length));
+            }
+          }
+        }
+      }
+      ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+      for (let f = 0; f < filas; f++) {
+        for (let c = 0; c < cols; c++) {
+          const cod = celdas[f * cols + c];
+          if (!cod || cod === 32) continue;
+          const [sx, sy] = atlas.hueco(cod, cod);
+          ctx.drawImage(atlas.lienzo, sx, sy, atlas.w, atlas.h,
+            Math.round((x0 + c * cw) * dpr), Math.round((y0 + f * ch) * dpr), atlas.w, atlas.h);
+        }
+      }
+    }
+
+    // ¿Se ve? Si se ve bien (más de un 30 %), el reloj pequeño le cede el sitio
+    let enPantalla = false;
+    const r0 = caja.getBoundingClientRect();
+    if (pequeno && r0.bottom > window.innerHeight * 0.3 && r0.top < window.innerHeight) pequeno.classList.add('cedido');
+    new IntersectionObserver(([e]) => {
+      if (pequeno) pequeno.classList.toggle('cedido', e.intersectionRatio > 0.3);
+      const antes = enPantalla;
+      enPantalla = e.isIntersecting;
+      if (enPantalla && !antes && !sinMovimiento) arrancar();
+    }, { threshold: [0, 0.3] }).observe(caja);
+
+    let pendiente = false;
+    const repintarQuieto = () => { pendiente = false; pintar(1, 0.6, 0.45, arenaCaida()); };
+    new ResizeObserver(() => {
+      if (medir() && sinMovimiento) repintarQuieto();
+    }).observe(caja);
+    medir();
+
+    if (sinMovimiento) {
+      // Sin movimiento: el reloj no gira ni se alborota; solo cambia la arena al hacer scroll
+      window.addEventListener('scroll', () => {
+        if (enPantalla && !pendiente) { pendiente = true; requestAnimationFrame(repintarQuieto); }
+      }, { passive: true });
+      repintarQuieto();
+      caja.classList.add('visible');
+      return;
+    }
+
+    window.addEventListener('pointermove', e => {
+      raton.x = e.clientX / window.innerWidth; raton.y = e.clientY / window.innerHeight;
+      raton.px = e.pageX; raton.py = e.pageY;
+    }, { passive: true });
+    // Con el dedo no hay puntero que siga: al soltar, el reloj vuelve a girar solo
+    window.addEventListener('pointerup', e => {
+      if (e.pointerType !== 'mouse') { raton.x = 0.5; raton.y = 0.5; raton.px = raton.py = -1e4; }
+    }, { passive: true });
+
+    // Se abre como en la entrada (de una línea de caracteres a la figura) cuando llega la cascada
+    const inicio = performance.now() + retardoCascada(caja) + 150;
+    const abrir = x => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+    let giro = 0.6, giroVel = 0.3, inclina = 0.28, arena = arenaCaida();
+    let previo = 0, yPrevio = 0, velocidad = 0, corriendo = false;
+
+    function arrancar() {
+      if (corriendo) return;
+      corriendo = true;
+      previo = performance.now(); yPrevio = window.scrollY; velocidad = 0;
+      requestAnimationFrame(cuadro);
+    }
+
+    function cuadro(ahora) {
+      if (!enPantalla) { corriendo = false; return; }
+      const dt = Math.min(0.05, Math.max(0.001, (ahora - previo) / 1000));
+      previo = ahora;
+      const y = window.scrollY;
+      velocidad = lerp(velocidad, (y - yPrevio) / dt, 1 - Math.exp(-dt * 10));
+      yPrevio = y;
+      const v = Math.max(-1, Math.min(1, velocidad / 2500));
+      // El ratón manda (como en la entrada) y el scroll lo acelera, o lo hace girar al revés si subes
+      giroVel = lerp(giroVel, 0.3 + (raton.x - 0.5) * 2.4 + v * 7, 1 - Math.exp(-dt * 2.5));
+      giro += giroVel * dt;
+      inclina = lerp(inclina, 0.08 + raton.y * 0.4 + v * 0.3, 1 - Math.exp(-dt * 3));
+      arena = lerp(arena, arenaCaida(), 1 - Math.exp(-dt * 3));
+      pintar(0.02 + 0.98 * abrir((ahora - inicio) / 1600), giro, inclina, arena);
+      requestAnimationFrame(cuadro);
+    }
+    caja.classList.add('visible');
   }
 
   function iniciarEntrada() {
@@ -1455,10 +1609,11 @@
     });
   }
 
-  /* ---------- 3f. Título de la portada de lado a lado ----------
-     El tamaño se calcula para que la línea más larga ocupe todo el ancho, con el mismo margen a la
-     izquierda y a la derecha. Se mide la tinta real de las letras (cursiva y tracking incluidos),
-     así funciona con Helvetica, con Arial o con la tipografía que tenga cada ordenador. */
+  /* ---------- 3f. Título de la portada ajustado al ancho ----------
+     El tamaño se calcula para que la línea más larga ocupe su parte del ancho (--titulo-ancho en
+     style.css: todo en el móvil y algo más de la mitad en pantalla ancha, con el reloj a la derecha).
+     Se mide la tinta real de las letras (cursiva y tracking incluidos), así funciona con la
+     tipografía que tenga cada ordenador. */
 
   function ajustarTitulo() {
     const h1 = $('.portada h1');
@@ -1479,7 +1634,8 @@
       return m.actualBoundingBoxRight + (texto.length - 1) * tracking;
     }));
     const izquierda = h1.getBoundingClientRect().left;
-    const objetivo = document.documentElement.clientWidth - 2 * izquierda;
+    const parte = parseFloat(cs.getPropertyValue('--titulo-ancho')) || 1;
+    const objetivo = (document.documentElement.clientWidth - 2 * izquierda) * parte;
     if (!(tinta > 0) || objetivo <= 0) return;
     // En vw, para que siga llenando el ancho si cambia la ventana antes de volver a medir
     h1.style.fontSize = (fs * objetivo / tinta / window.innerWidth * 100).toFixed(3) + 'vw';
@@ -1527,6 +1683,7 @@
     const empezar = () => {
       textos.filter(el => !el.hasAttribute('data-manual')).forEach(el => observador.observe(el));
       $$('[data-reveal]').forEach(el => observador.observe(el));
+      iniciarRelojPortada();
       iniciarRelojScroll();
     };
     iniciarReloj();
